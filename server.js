@@ -558,3 +558,77 @@ app.get('/stream', requireLogin, async (req, res) => {
     res.status(500).send('Download failed!');
   }
 });
+
+// ===== VIDEO DOWNLOADER =====
+const ytdl = require('@distube/ytdl-core');
+
+app.get('/downloader', requireLogin, (req, res) => {
+  res.render('downloader', { user: req.session.user });
+});
+
+app.post('/download/youtube', requireLogin, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!ytdl.validateURL(url)) return res.json({ error: 'Invalid YouTube URL!' });
+    const info = await ytdl.getInfo(url);
+    res.json({
+      success: true,
+      title: info.videoDetails.title,
+      thumbnail: info.videoDetails.thumbnails.slice(-1)[0].url,
+      channel: info.videoDetails.author.name,
+      duration: Math.floor(info.videoDetails.lengthSeconds / 60) + ':' + (info.videoDetails.lengthSeconds % 60).toString().padStart(2,'0')
+    });
+  } catch(e) {
+    res.json({ error: 'YouTube video nahi mili!' });
+  }
+});
+
+app.get('/stream/youtube', requireLogin, async (req, res) => {
+  try {
+    const { url, type } = req.query;
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0,50);
+    if (type === 'audio') {
+      res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+      res.header('Content-Type', 'audio/mpeg');
+      ytdl(url, { filter: 'audioonly', quality: 'highestaudio' }).pipe(res);
+    } else {
+      res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+      res.header('Content-Type', 'video/mp4');
+      ytdl(url, { filter: 'videoandaudio', quality: 'highest' }).pipe(res);
+    }
+  } catch(e) {
+    res.status(500).json({ error: 'Download failed!' });
+  }
+});
+
+// TikTok, Instagram, Facebook - RapidAPI se
+app.post('/download/social', requireLogin, async (req, res) => {
+  try {
+    const { url } = req.body;
+    const fetch = (await import('node-fetch')).default;
+    
+    // Social media downloader API
+    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(url)}`;
+    const response = await fetch(apiUrl, {
+      headers: {
+        'X-RapidAPI-Key': 'YOUR_RAPIDAPI_KEY',
+        'X-RapidAPI-Host': 'social-media-video-downloader.p.rapidapi.com'
+      }
+    });
+    const data = await response.json();
+    
+    if (data.links && data.links.length > 0) {
+      res.json({
+        success: true,
+        title: data.title || 'Video',
+        thumbnail: data.picture || '',
+        links: data.links.slice(0,3)
+      });
+    } else {
+      res.json({ error: 'Video nahi mili!' });
+    }
+  } catch(e) {
+    res.json({ error: 'Download failed! URL check karo.' });
+  }
+});

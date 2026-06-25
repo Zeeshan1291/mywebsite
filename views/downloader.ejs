@@ -2,102 +2,149 @@
 <html>
 <head>
   <title>Video Downloader</title>
-  <link rel="manifest" href="/manifest.json">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',Arial,sans-serif; }
     body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:100vh; padding:20px; }
-    .card { background:rgba(255,255,255,0.07); backdrop-filter:blur(20px); border-radius:24px; padding:28px; max-width:480px; margin:0 auto; border:1px solid rgba(255,255,255,0.1); }
-    h1 { color:white; text-align:center; font-size:24px; margin-bottom:6px; }
-    .sub { color:#a78bfa; text-align:center; font-size:13px; margin-bottom:25px; }
+    .card { background:rgba(255,255,255,0.07); border-radius:24px; padding:28px; max-width:480px; margin:0 auto; border:1px solid rgba(255,255,255,0.1); }
+    h1 { color:white; text-align:center; font-size:22px; margin-bottom:5px; }
+    .sub { color:#a78bfa; text-align:center; font-size:12px; margin-bottom:20px; }
+    .platforms { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
+    .platform { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; border:2px solid transparent; transition:0.2s; }
+    .platform.yt { background:#ff0000; color:white; }
+    .platform.tt { background:#000; color:white; border-color:#69C9D0; }
+    .platform.ig { background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); color:white; }
+    .platform.fb { background:#1877f2; color:white; }
+    .platform.active { transform:scale(1.05); box-shadow:0 4px 15px rgba(255,255,255,0.2); }
     .input-group { background:rgba(255,255,255,0.08); border-radius:14px; padding:14px 18px; margin-bottom:14px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,0.1); }
     .input-group input { background:none; border:none; outline:none; color:white; font-size:14px; width:100%; }
     .input-group input::placeholder { color:rgba(255,255,255,0.4); }
-    select { width:100%; padding:14px 18px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:14px; color:white; font-size:14px; margin-bottom:14px; outline:none; }
-    select option { background:#302b63; }
     .btn { width:100%; padding:15px; background:linear-gradient(90deg,#6a11cb,#2575fc); color:white; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; }
     .result { margin-top:20px; background:rgba(255,255,255,0.05); border-radius:16px; padding:20px; display:none; }
-    .thumb { width:100%; border-radius:12px; margin-bottom:12px; }
-    .video-title { color:white; font-size:15px; font-weight:600; margin-bottom:12px; }
-    .dl-btn { display:block; width:100%; padding:13px; border-radius:14px; text-align:center; text-decoration:none; font-weight:700; font-size:15px; margin-bottom:10px; }
-    .dl-video { background:linear-gradient(90deg,#6a11cb,#2575fc); color:white; }
-    .dl-audio { background:linear-gradient(90deg,#11998e,#38ef7d); color:white; }
+    .thumb { width:100%; border-radius:12px; margin-bottom:12px; max-height:200px; object-fit:cover; }
+    .video-title { color:white; font-size:14px; font-weight:600; margin-bottom:6px; }
+    .video-meta { color:#a78bfa; font-size:12px; margin-bottom:15px; }
+    .dl-btn { display:block; width:100%; padding:13px; border-radius:14px; text-align:center; text-decoration:none; font-weight:700; font-size:14px; margin-bottom:10px; color:white; }
+    .dl-video { background:linear-gradient(90deg,#6a11cb,#2575fc); }
+    .dl-audio { background:linear-gradient(90deg,#11998e,#38ef7d); }
+    .dl-link { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); }
     .error-box { background:rgba(220,53,69,0.2); color:#ff6b6b; padding:12px; border-radius:12px; margin-top:15px; text-align:center; display:none; }
-    .loading { text-align:center; color:#a78bfa; margin-top:15px; display:none; }
+    .loading { text-align:center; color:#a78bfa; margin-top:15px; display:none; font-size:14px; }
     .back { color:#a78bfa; text-decoration:none; display:block; text-align:center; margin-top:20px; font-size:14px; }
-    .platforms { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
-    .platform { background:rgba(255,255,255,0.1); color:white; padding:6px 14px; border-radius:20px; font-size:12px; }
+    .tip { background:rgba(255,255,255,0.05); border-radius:12px; padding:12px; margin-bottom:15px; color:#a78bfa; font-size:12px; text-align:center; }
   </style>
 </head>
 <body>
 <div class="card">
   <h1>📥 Video Downloader</h1>
-  <p class="sub">YouTube videos download karo</p>
-  
+  <p class="sub">YouTube • TikTok • Instagram • Facebook</p>
+
   <div class="platforms">
-    <span class="platform">▶️ YouTube</span>
-    <span class="platform">🎵 MP3</span>
-    <span class="platform">📹 MP4</span>
+    <span class="platform yt active" onclick="setPlatform('youtube',this)">▶️ YouTube</span>
+    <span class="platform tt" onclick="setPlatform('tiktok',this)">🎵 TikTok</span>
+    <span class="platform ig" onclick="setPlatform('instagram',this)">📸 Instagram</span>
+    <span class="platform fb" onclick="setPlatform('facebook',this)">👍 Facebook</span>
   </div>
+
+  <div class="tip" id="tipBox">YouTube video ka link paste karo</div>
 
   <div class="input-group">
     <span>🔗</span>
-    <input type="text" id="urlInput" placeholder="YouTube link paste karo...">
+    <input type="text" id="urlInput" placeholder="Link paste karo...">
   </div>
-  
-  <select id="quality">
-    <option value="highest">🎬 Best Quality (HD)</option>
-    <option value="lowest">📱 Low Quality (Fast)</option>
-    <option value="audio">🎵 Audio Only (MP3)</option>
-  </select>
-  
-  <button class="btn" onclick="getInfo()">🔍 Get Video Info</button>
-  
-  <div class="loading" id="loading">⏳ Video info le raha hai...</div>
+
+  <button class="btn" onclick="downloadVideo()">📥 Download Karo</button>
+
+  <div class="loading" id="loading">⏳ Video dhundh raha hai...</div>
   <div class="error-box" id="errorBox"></div>
-  
+
   <div class="result" id="result">
-    <img id="thumb" class="thumb" src="" alt="thumbnail">
+    <img id="thumb" class="thumb" src="" alt="thumbnail" onerror="this.style.display='none'">
     <div class="video-title" id="videoTitle"></div>
-    <a id="dlVideo" class="dl-btn dl-video" href="#">📥 Download Video (MP4)</a>
-    <a id="dlAudio" class="dl-btn dl-audio" href="#">🎵 Download Audio (MP3)</a>
+    <div class="video-meta" id="videoMeta"></div>
+    <div id="dlButtons"></div>
   </div>
-  
+
   <a href="/" class="back">← Home</a>
 </div>
 
 <script>
-async function getInfo() {
+let platform = 'youtube';
+
+const tips = {
+  youtube: 'YouTube video ka link paste karo',
+  tiktok: 'TikTok video ka link paste karo',
+  instagram: 'Instagram post/reel ka link paste karo',
+  facebook: 'Facebook video ka link paste karo'
+};
+
+function setPlatform(p, el) {
+  platform = p;
+  document.querySelectorAll('.platform').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tipBox').textContent = tips[p];
+  document.getElementById('urlInput').placeholder = tips[p];
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+async function downloadVideo() {
   const url = document.getElementById('urlInput').value.trim();
-  const quality = document.getElementById('quality').value;
-  
-  if (!url) { showError('URL dalo!'); return; }
-  
+  if (!url) { showError('Link paste karo!'); return; }
+
   document.getElementById('loading').style.display = 'block';
   document.getElementById('result').style.display = 'none';
   document.getElementById('errorBox').style.display = 'none';
-  
+
   try {
-    const res = await fetch('/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, quality })
-    });
-    const data = await res.json();
-    
-    document.getElementById('loading').style.display = 'none';
-    
-    if (data.error) { showError(data.error); return; }
-    
-    document.getElementById('thumb').src = data.thumbnail;
-    document.getElementById('videoTitle').textContent = data.title;
-    document.getElementById('dlVideo').href = `/stream?url=${encodeURIComponent(url)}&quality=highest`;
-    document.getElementById('dlAudio').href = `/stream?url=${encodeURIComponent(url)}&quality=audio`;
-    document.getElementById('result').style.display = 'block';
+    let data;
+    if (platform === 'youtube') {
+      const res = await fetch('/download/youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      data = await res.json();
+      
+      if (data.success) {
+        document.getElementById('thumb').src = data.thumbnail;
+        document.getElementById('videoTitle').textContent = data.title;
+        document.getElementById('videoMeta').textContent = '👤 ' + data.channel + ' • ⏱️ ' + data.duration;
+        document.getElementById('dlButtons').innerHTML = `
+          <a href="/stream/youtube?url=${encodeURIComponent(url)}&type=video" class="dl-btn dl-video" download>📥 Download Video (MP4)</a>
+          <a href="/stream/youtube?url=${encodeURIComponent(url)}&type=audio" class="dl-btn dl-audio" download>🎵 Download Audio (MP3)</a>
+        `;
+        document.getElementById('result').style.display = 'block';
+      } else {
+        showError(data.error);
+      }
+    } else {
+      const res = await fetch('/download/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      data = await res.json();
+      
+      if (data.success) {
+        document.getElementById('thumb').src = data.thumbnail;
+        document.getElementById('videoTitle').textContent = data.title;
+        document.getElementById('videoMeta').textContent = platform.toUpperCase() + ' Video';
+        
+        let btns = '';
+        data.links.forEach((link, i) => {
+          btns += `<a href="${link.url}" class="dl-btn dl-link" target="_blank" download>📥 Download ${link.quality || 'Option '+(i+1)}</a>`;
+        });
+        document.getElementById('dlButtons').innerHTML = btns;
+        document.getElementById('result').style.display = 'block';
+      } else {
+        showError(data.error || 'Video nahi mili!');
+      }
+    }
   } catch(e) {
-    document.getElementById('loading').style.display = 'none';
     showError('Kuch galat hua! Dobara try karo.');
   }
+  document.getElementById('loading').style.display = 'none';
 }
 
 function showError(msg) {
@@ -107,7 +154,7 @@ function showError(msg) {
 }
 
 document.getElementById('urlInput').addEventListener('keypress', e => {
-  if (e.key === 'Enter') getInfo();
+  if (e.key === 'Enter') downloadVideo();
 });
 </script>
 </body>

@@ -6,10 +6,12 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "ejs": "*",
     "express": "*",
     "express-session": "*",
     "multer": "*",
+    "node-fetch": "^3.3.2",
     "socket.io": "*",
     "uuid": "*",
     "ytdl-core": "^4.11.5"

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profile</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .avatar-big { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #2575fc; margin: 10px auto; display: block; }
+    .avatar-placeholder { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg,#6a11cb,#2575fc); display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 10px auto; }
+    .online-dot { width: 12px; height: 12px; background: #28a745; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .offline-dot { width: 12px; height: 12px; background: #999; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/">← Home</a>
+  <br><br>
+  <% if (user.avatar) { %>
+    <img src="<%= user.avatar %>" class="avatar-big" alt="avatar">
+  <% } else { %>
+    <div class="avatar-placeholder">👤</div>
+  <% } %>
+  <h1><%= user.username %></h1>
+  <p id="onlineStatus"><span class="offline-dot"></span>Checking...</p>
+  <p style="color:#666;margin:10px 0"><%= user.bio || 'No bio yet' %></p>
+
+  <% if (isOwn) { %>
+    <hr style="margin:15px 0">
+    <h3>Edit Profile</h3>
+    <form method="POST" action="/profile/update" enctype="multipart/form-data">
+      <label>Profile Picture</label>
+      <input type="file" name="avatar" accept="image/*" capture="user">
+      <label>Bio</label>
+      <textarea name="bio" placeholder="Apne baare mein likho..."><%= user.bio || '' %></textarea>
+      <button type="submit">💾 Save</button>
+    </form>
+  <% } else { %>
+    <a href="/chat/<%= user.username %>"><button>💬 Message</button></a>
+    <a href="/call/<%= user.username %>"><button style="background:linear-gradient(90deg,#28a745,#20c997);margin-top:8px">📞 Video Call</button></a>
+  <% } %>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+socket.emit('userOnline', '<%= user.username %>');
+socket.on('onlineUsers', (users) => {
+  const profileUser = '<%= user.username %>';
+  const el = document.getElementById('onlineStatus');
+  if (users.includes(profileUser)) {
+    el.innerHTML = '<span class="online-dot"></span><b style="color:#28a745">Online</b>';
+  } else {
+    el.innerHTML = '<span class="offline-dot"></span><span style="color:#999">Offline</span>';
+  }
+});
+</script>
+</body>
+</html>

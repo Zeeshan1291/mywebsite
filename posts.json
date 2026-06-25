@@ -1,0 +1,57 @@
+[
+  {
+    "id": "1782352992739",
+    "username": "Zeeshan Niazi ",
+    "content": "My name zeeshan Niazi ",
+    "likes": [
+      "Zeeshan Niazi "
+    ],
+    "comments": [
+      {
+        "username": "Zeeshan Niazi ",
+        "text": "Okay "
+      },
+      {
+        "username": "Zeeshan Niazi ",
+        "text": "Hlo mnhuui"
+      },
+      {
+        "username": "Zeeshan bot ",
+        "text": "Hhhbyuij"
+      },
+      {
+        "username": "Zeeshan bot ",
+        "text": "My name zeeshan Niazi is "
+      },
+      {
+        "username": "Zeeshan Niazi ",
+        "text": "My name is "
+      },
+      {
+        "username": "Zeeshan Niazi ",
+        "text": "Hakaka llaosjsjushsndhdj"
+      },
+      {
+        "username": "Zeeshan bot ",
+        "text": "H"
+      }
+    ]
+  },
+  {
+    "id": "1782353006561",
+    "username": "Zeeshan Niazi ",
+    "content": "Hlo",
+    "likes": [],
+    "comments": []
+  },
+  {
+    "id": "1782353181592",
+    "username": "Zeeshan Niazi ",
+    "content": "Beautiful ",
+    "image": "/uploads/Zeeshan Niazi _1782353181541.png",
+    "likes": [
+      "Zeeshan Niazi "
+    ],
+    "comments": []
+  }
+]

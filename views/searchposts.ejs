@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Search Posts</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container">
+  <a href="/posts">← Posts</a>
+  <h1>🔍 Post Search</h1>
+  <form method="GET" action="/search/posts" style="display:flex;gap:8px;margin-bottom:15px">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search karo..." style="flex:1;margin:0">
+    <button type="submit" style="width:auto;padding:10px 16px">🔍</button>
+  </form>
+  <% if (posts.length === 0 && q) { %>
+    <p style="text-align:center;color:#999">Koi post nahi mili!</p>
+  <% } %>
+  <% posts.forEach(p => { %>
+  <div class="post">
+    <div class="post-user">👤 <%= p.user %></div>
+    <div class="post-content"><%= p.content %></div>
+    <% if (p.image) { %><img src="<%= p.image %>" style="width:100%;border-radius:12px;margin-top:8px"><% } %>
+    <div style="font-size:11px;color:#999;margin-top:6px"><%= p.time %></div>
+  </div>
+  <% }) %>
+</div>
+</body>
+</html>

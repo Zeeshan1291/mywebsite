@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+  <link rel="stylesheet" href="/style.css">
+  <% if (theme === 'dark') { %><link rel="stylesheet" href="/dark.css"><% } %>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2575fc">
+</head>
+<body>
+<div class="container">
+  <h1>🏠 Home</h1>
+  <p>Welcome, <b><%= user %></b>! 👋</p>
+  <% if (unread > 0) { %>
+    <div style="background:#ff6a88;color:white;padding:10px;border-radius:12px;margin-bottom:12px;font-weight:700">
+      🔔 <%= unread %> naye notifications hain!
+    </div>
+  <% } %>
+  <div style="display:flex;flex-direction:column;gap:10px;margin:15px 0">
+    <a href="/profile"><button>👤 My Profile</button></a>
+    <a href="/posts"><button>📝 Posts & Stories</button></a>
+    <a href="/explore"><button>🌍 Explore</button></a>
+    <a href="/chat"><button>💬 Private Chat</button></a>
+    <a href="/groups"><button>👥 Group Chat</button></a>
+    <a href="/live"><button>📡 Live Stream</button></a>
+    <a href="/notifications"><button style="background:linear-gradient(90deg,#ff6a88,#ff99ac)">🔔 Notifications <% if(unread>0){%>(<%= unread %>)<%}%></button></a>
+    <a href="/search"><button>🔍 Search Users</button></a>
+    <a href="/games"><button>🎮 Games</button></a>
+  </div>
+  <form method="POST" action="/theme">
+    <button type="submit" style="background:#555">🌙 Dark Mode</button>
+  </form>
+  <br>
+  <!-- Admin -->
+  <% if (adminData.admins.includes(user)) { %>
+  <a href="/admin"><button style="background:linear-gradient(90deg,#dc3545,#ff6a88);margin-bottom:10px">👑 Admin Panel</button></a>
+  <% } %>
+  <a href="/logout">🚪 Logout</a>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+socket.emit('userOnline', '<%= user %>');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+</script>
+</body>
+</html>

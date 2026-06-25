@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Search</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Search Users</h1>
+    <form method="GET" action="/search">
+      <input name="q" placeholder="Search username..." value="<%= q %>">
+      <button type="submit">Search</button>
+    </form>
+    <% results.forEach(u => { %>
+      <p><%= u.username %> — <a href="/messages/<%= u.username %>">Message</a></p>
+    <% }) %>
+    <% if (q && results.length === 0) { %><p>No users found.</p><% } %>
+    <p><a href="/">Back to Home</a></p>
+  </div>
+</body>
+</html>

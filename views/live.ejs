@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; }
+    body { background:#1a1a2e; color:white; padding:20px; }
+    h1 { text-align:center; margin-bottom:20px; font-size:28px; }
+    video { width:100%; max-width:480px; border-radius:16px; background:#000; display:block; margin:0 auto; }
+    .controls { display:flex; gap:10px; justify-content:center; margin:15px 0; flex-wrap:wrap; }
+    .btn { padding:12px 24px; border-radius:25px; border:none; font-size:15px; font-weight:700; cursor:pointer; }
+    .btn-red { background:#dc3545; color:white; }
+    .btn-green { background:#28a745; color:white; }
+    .btn-blue { background:#2575fc; color:white; }
+    .live-badge { background:#dc3545; color:white; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:700; display:inline-block; margin:10px auto; animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .chat-box { background:rgba(255,255,255,0.1); border-radius:12px; padding:12px; height:200px; overflow-y:auto; margin:10px 0; }
+    .chat-input { display:flex; gap:8px; }
+    .chat-input input { flex:1; padding:10px; border-radius:10px; border:none; background:rgba(255,255,255,0.1); color:white; font-size:14px; }
+    .status { text-align:center; margin:10px 0; opacity:0.8; }
+    a { color:#aaa; display:block; text-align:center; margin-top:15px; }
+  </style>
+</head>
+<body>
+<h1>📡 Live Stream</h1>
+<div style="text-align:center">
+  <span class="live-badge" id="liveBadge" style="display:none">🔴 LIVE</span>
+</div>
+<div class="status" id="status">Go LIVE karo ya kisi ki stream dekho!</div>
+
+<video id="localVideo" autoplay muted playsinline></video>
+<video id="remoteVideo" autoplay playsinline style="margin-top:10px;display:none"></video>
+
+<div class="controls">
+  <button class="btn btn-green" onclick="goLive()">🔴 Go Live</button>
+  <button class="btn btn-red" onclick="stopLive()">⏹️ Stop</button>
+  <button class="btn btn-blue" onclick="flipCam()">🔄 Flip</button>
+</div>
+
+<div style="max-width:480px;margin:0 auto">
+  <p style="font-size:14px;margin-bottom:8px">💬 Live Chat</p>
+  <div class="chat-box" id="liveChat"></div>
+  <div class="chat-input">
+    <input type="text" id="liveMsg" placeholder="Comment karo...">
+    <button class="btn btn-blue" onclick="sendLiveMsg()" style="padding:10px 16px">Send</button>
+  </div>
+</div>
+
+<a href="/">← Home</a>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const me = '<%= user %>';
+let stream, facingMode = 'user', isLive = false;
+
+socket.emit('userOnline', me);
+
+async function goLive() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+    document.getElementById('localVideo').srcObject = stream;
+    document.getElementById('liveBadge').style.display = 'inline-block';
+    document.getElementById('status').textContent = '🔴 Aap LIVE ho!';
+    socket.emit('startLive', { username: me });
+    isLive = true;
+  } catch(e) {
+    document.getElementById('status').textContent = '❌ Camera access denied!';
+  }
+}
+
+function stopLive() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  document.getElementById('localVideo').srcObject = null;
+  document.getElementById('liveBadge').style.display = 'none';
+  document.getElementById('status').textContent = 'Live khatam';
+  isLive = false;
+}
+
+async function flipCam() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  if (isLive) { stopLive(); await goLive(); }
+}
+
+socket.on('liveStarted', (data) => {
+  document.getElementById('status').textContent = '📡 ' + data.streamer + ' LIVE hai!';
+  addLiveMsg('🔴 ' + data.streamer + ' ne live start kiya!', 'system');
+});
+
+function sendLiveMsg() {
+  const input = document.getElementById('liveMsg');
+  if (!input.value.trim()) return;
+  socket.emit('liveChatMsg', { sender: me, message: input.value });
+  addLiveMsg(me + ': ' + input.value, 'me');
+  input.value = '';
+}
+
+socket.on('liveChatMsg', (data) => {
+  addLiveMsg(data.sender + ': ' + data.message, 'them');
+});
+
+function addLiveMsg(text, type) {
+  const box = document.getElementById('liveChat');
+  const div = document.createElement('div');
+  div.style.cssText = 'padding:5px 0;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.1);';
+  div.style.color = type === 'system' ? '#ffd700' : type === 'me' ? '#00c6ff' : 'white';
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById('liveMsg').addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendLiveMsg();
+});
+</script>
+</body>
+</html>

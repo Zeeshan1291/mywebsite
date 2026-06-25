@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Chatbot</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .chat-box { height: 350px; overflow-y: auto; background: #f0f0f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .msg { padding: 10px 15px; border-radius: 18px; margin: 8px 0; max-width: 80%; color: white; word-wrap: break-word; }
+    .msg.me { background: linear-gradient(90deg, #6a11cb, #2575fc); margin-left: auto; text-align: right; }
+    .msg.bot { background: linear-gradient(90deg, #11998e, #38ef7d); color: #111; }
+    .input-row { display: flex; gap: 10px; }
+    .input-row input { flex: 1; margin: 0; }
+    .input-row button { width: auto; padding: 13px 20px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🤖 AI Chatbot</h1>
+  <p><a href="/">← Back</a></p>
+  <div class="chat-box" id="chatBox">
+    <div class="msg bot">Assalam o Alaikum! Main HackBot hoon 🤖 Kuch poochho!</div>
+  </div>
+  <div class="input-row">
+    <input type="text" id="msgInput" placeholder="Kuch poochho..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button onclick="sendMsg()">Send</button>
+  </div>
+</div>
+<script>
+async function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const box = document.getElementById('chatBox');
+  box.innerHTML += `<div class="msg me">${msg}</div>`;
+  input.value = '';
+  box.scrollTop = box.scrollHeight;
+  const res = await fetch('/chatbot', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ message: msg })
+  });
+  const data = await res.json();
+  box.innerHTML += `<div class="msg bot">🤖 ${data.reply}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+</script>
+</body>
+</html>

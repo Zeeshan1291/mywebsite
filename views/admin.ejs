@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .admin-header { background:linear-gradient(90deg,#dc3545,#ff6a88); color:white; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+    .stat-card { background:#fff; border-radius:14px; padding:16px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.08); }
+    .stat-num { font-size:32px; font-weight:800; background:linear-gradient(90deg,#6a11cb,#2575fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .stat-label { font-size:13px; color:#888; margin-top:4px; }
+    .section { background:#fff; border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 4px 15px rgba(0,0,0,0.08); }
+    .section h3 { font-size:16px; font-weight:700; margin-bottom:12px; color:#333; border-bottom:2px solid #f0f0f0; padding-bottom:8px; }
+    .user-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
+    .user-row:last-child { border:none; }
+    .user-av { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#6a11cb,#2575fc); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .user-name { flex:1; font-weight:600; font-size:14px; }
+    .badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .badge-admin { background:#fff3cd; color:#856404; }
+    .badge-banned { background:#f8d7da; color:#721c24; }
+    .badge-online { background:#d4edda; color:#155724; }
+    .btn-sm { padding:6px 12px; font-size:12px; border-radius:20px; border:none; cursor:pointer; color:white; font-weight:700; margin-left:4px; }
+    .btn-ban { background:#dc3545; }
+    .btn-del { background:#6c757d; }
+    .btn-admin { background:#6a11cb; }
+    .online-dot { width:8px; height:8px; background:#28a745; border-radius:50%; display:inline-block; }
+    .post-row { padding:10px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
+    .post-row:last-child { border:none; }
+    .broadcast-box { background:linear-gradient(135deg,#fff3cd,#ffeaa7); border-radius:12px; padding:14px; margin-bottom:12px; }
+    .settings-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
+    .toggle { position:relative; width:44px; height:24px; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:24px; transition:0.3s; cursor:pointer; }
+    .slider:before { content:""; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:0.3s; }
+    input:checked + .slider { background:#6a11cb; }
+    input:checked + .slider:before { transform:translateX(20px); }
+    .alert-box { background:linear-gradient(90deg,#dc3545,#ff6a88); color:white; padding:12px 16px; border-radius:12px; margin-bottom:16px; font-weight:700; font-size:14px; }
+  </style>
+</head>
+<body>
+<div class="container" style="max-width:100%">
+
+  <div class="admin-header">
+    <div style="font-size:40px">👑</div>
+    <h2 style="font-size:24px;margin:8px 0">Admin Panel</h2>
+    <p style="opacity:0.9;font-size:14px">Welcome, <%= user %></p>
+  </div>
+
+  <% if (settings.maintenanceMode) { %>
+  <div class="alert-box">⚠️ Maintenance Mode ON hai! Users login nahi kar sakte.</div>
+  <% } %>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num"><%= users.length %></div>
+      <div class="stat-label">👥 Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= posts.length %></div>
+      <div class="stat-label">📝 Total Posts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= onlineCount %></div>
+      <div class="stat-label">🟢 Online Now</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= groups.length %></div>
+      <div class="stat-label">👥 Groups</div>
+    </div>
+  </div>
+
+  <!-- Online Users -->
+  <div class="section">
+    <h3>🟢 Online Users (<%= onlineList.length %>)</h3>
+    <% if (onlineList.length === 0) { %>
+      <p style="color:#999;font-size:13px">Koi online nahi</p>
+    <% } %>
+    <% onlineList.forEach(u => { %>
+      <span style="display:inline-block;background:#d4edda;color:#155724;padding:4px 12px;border-radius:20px;font-size:12px;margin:3px;font-weight:600">
+        <span class="online-dot"></span> <%= u %>
+      </span>
+    <% }) %>
+  </div>
+
+  <!-- Broadcast -->
+  <div class="section">
+    <h3>📢 Broadcast Message</h3>
+    <div class="broadcast-box">
+      <form method="POST" action="/admin/broadcast">
+        <input type="text" name="message" placeholder="Sab users ko message bhejo..." required>
+        <button type="submit" style="background:linear-gradient(90deg,#dc3545,#ff6a88)">📢 Send to All</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="section">
+    <h3>⚙️ Site Settings</h3>
+    <form method="POST" action="/admin/settings">
+      <label>Site Name</label>
+      <input type="text" name="siteName" value="<%= settings.siteName %>">
+      <div class="settings-row">
+        <span style="font-weight:600;font-size:14px">Allow Signup</span>
+        <label class="toggle">
+          <input type="checkbox" name="allowSignup" <%= settings.allowSignup ? 'checked' : '' %>>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <span style="font-weight:600;font-size:14px">Maintenance Mode</span>
+        <label class="toggle">
+          <input type="checkbox" name="maintenanceMode" <%= settings.maintenanceMode ? 'checked' : '' %>>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <br>
+      <button type="submit">💾 Save Settings</button>
+    </form>
+  </div>
+
+  <!-- Users List -->
+  <div class="section">
+    <h3>👥 All Users</h3>
+    <% users.forEach(u => { %>
+    <div class="user-row">
+      <% if (u.avatar) { %>
+        <img src="<%= u.avatar %>" style="width:38px;height:38px;border-radius:50%;object-fit:cover">
+      <% } else { %>
+        <div class="user-av">👤</div>
+      <% } %>
+      <div class="user-name">
+        <%= u.username %>
+        <% if (admins.includes(u.username)) { %><span class="badge badge-admin">👑 Admin</span><% } %>
+        <% if (u.banned) { %><span class="badge badge-banned">🚫 Banned</span><% } %>
+        <% if (onlineList.includes(u.username)) { %><span class="badge badge-online">🟢 Online</span><% } %>
+      </div>
+      <div>
+        <% if (u.username !== user) { %>
+          <form method="POST" action="/admin/ban/<%= u.username %>" style="display:inline">
+            <button class="btn-sm btn-ban"><%= u.banned ? '✅ Unban' : '🚫 Ban' %></button>
+          </form>
+          <% if (!admins.includes(u.username)) { %>
+          <form method="POST" action="/admin/makeadmin/<%= u.username %>" style="display:inline">
+            <button class="btn-sm btn-admin">👑 Admin</button>
+          </form>
+          <% } else if (u.username !== 'Zeeshan Khan') { %>
+          <form method="POST" action="/admin/removeadmin/<%= u.username %>" style="display:inline">
+            <button class="btn-sm" style="background:#856404">❌ Remove</button>
+          </form>
+          <% } %>
+          <form method="POST" action="/admin/deleteuser/<%= u.username %>" style="display:inline" onsubmit="return confirm('Delete karna chahte ho?')">
+            <button class="btn-sm btn-del">🗑️ Delete</button>
+          </form>
+        <% } else { %>
+          <span style="font-size:12px;color:#6a11cb;font-weight:700">👑 You</span>
+        <% } %>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <!-- Posts List -->
+  <div class="section">
+    <h3>📝 All Posts</h3>
+    <form method="POST" action="/admin/clearposts" onsubmit="return confirm('Sab posts delete karna chahte ho?')" style="margin-bottom:12px">
+      <button type="submit" style="background:#dc3545;padding:10px;font-size:14px">🗑️ Delete All Posts</button>
+    </form>
+    <% posts.slice().reverse().slice(0,20).forEach(p => { %>
+    <div class="post-row">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <b style="color:#6a11cb"><%= p.user %></b>
+          <span style="color:#999;font-size:11px;margin-left:8px"><%= p.time %></span>
+          <div style="color:#555;margin-top:4px"><%= p.content ? p.content.substring(0,60) : '📸 Image post' %>...</div>
+        </div>
+        <form method="POST" action="/admin/deletepost/<%= p.id %>">
+          <button class="btn-sm btn-del">🗑️</button>
+        </form>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <a href="/">← Home</a>
+</div>
+</body>
+</html>

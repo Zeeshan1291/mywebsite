@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Watch</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    video { width: 100%; border-radius: 12px; background: #000; min-height: 200px; }
+    .chat-box { height: 200px; overflow-y: auto; background: #f0f0f0; border-radius: 12px; padding: 10px; margin: 10px 0; }
+    .live-msg { padding: 5px; border-bottom: 1px solid #ddd; font-size: 13px; }
+    .input-row { display: flex; gap: 10px; }
+    .input-row input { flex: 1; margin: 0; }
+    .input-row button { width: auto; padding: 13px 15px; }
+    .live-badge { background: red; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <% if (stream) { %>
+    <span class="live-badge">🔴 LIVE</span>
+    <h2>@<%= stream.user %></h2>
+    <p><%= stream.title %></p>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <% if (stream.user === user) { %>
+      <video id="localVideo" autoplay muted playsinline style="margin-top:10px"></video>
+      <button id="startBtn" onclick="startStream()">🎥 Camera Start</button>
+      <form method="POST" action="/live/stop" style="margin-top:10px">
+        <button style="background:red">⏹️ Live Stop Karo</button>
+      </form>
+    <% } %>
+    <br>
+    <h3>💬 Live Chat</h3>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="input-row">
+      <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMsg()">
+      <button onclick="sendMsg()">Send</button>
+    </div>
+  <% } else { %>
+    <h2>❌ Live nahi mil raha!</h2>
+    <a href="/live">← Back</a>
+  <% } %>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const room = '<%= stream ? stream.user : "" %>';
+const me = '<%= user %>';
+const isStreamer = '<%= stream ? stream.user : "" %>' === me;
+socket.emit('join-live', room);
+
+socket.on('live-message', data => {
+  const box = document.getElementById('chatBox');
+  box.innerHTML += '<div class="live-msg"><b>' + data.user + ':</b> ' + data.text + '</div>';
+  box.scrollTop = box.scrollHeight;
+});
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  if (!input.value.trim()) return;
+  socket.emit('live-message', { room, user: me, text: input.value });
+  input.value = '';
+}
+
+let pc, localStream;
+async function startStream() {
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  document.getElementById('localVideo').srcObject = localStream;
+  document.getElementById('startBtn').style.display = 'none';
+}
+
+socket.on('live-signal', async data => {
+  if (!isStreamer && data.type === 'offer') {
+    pc = new RTCPeerConnection();
+    pc.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
+    await pc.setRemoteDescription(data.sdp);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('live-signal', { room, type: 'answer', sdp: answer });
+  }
+});
+</script>
+</body>
+</html>

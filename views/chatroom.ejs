@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .chat-box { height: 350px; overflow-y: auto; background: #f0f4ff; border-radius: 12px; padding: 12px; margin: 10px 0; }
+    .msg { padding: 8px 14px; border-radius: 18px; margin: 6px 0; max-width: 75%; font-size: 14px; word-break: break-word; }
+    .msg.me { background: linear-gradient(90deg,#6a11cb,#2575fc); color: white; margin-left: auto; text-align: right; }
+    .msg.them { background: #e0e0e0; color: #333; }
+    .msg-time { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+    .chat-input { display: flex; gap: 8px; margin-top: 10px; }
+    .chat-input input { margin-bottom: 0; flex: 1; }
+    .chat-input button { width: auto; padding: 10px 18px; }
+    .online-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .online-badge.on { background: #d4edda; color: #28a745; }
+    .online-badge.off { background: #eee; color: #999; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/chat">← Back</a>
+  <div style="display:flex;align-items:center;gap:10px;margin:10px 0">
+    <% if (other.avatar) { %>
+      <img src="<%= other.avatar %>" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+    <% } else { %>
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6a11cb,#2575fc);display:flex;align-items:center;justify-content:center;font-size:18px">👤</div>
+    <% } %>
+    <div>
+      <b><%= chatWith %></b><br>
+      <span class="online-badge <%= isOnline ? 'on' : 'off' %>" id="statusBadge"><%= isOnline ? '🟢 Online' : '⚫ Offline' %></span>
+    </div>
+    <a href="/call/<%= chatWith %>" style="margin-left:auto">
+      <button style="width:auto;padding:8px 16px;background:linear-gradient(90deg,#28a745,#20c997)">📞 Call</button>
+    </a>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <% messages.forEach(m => { %>
+      <div class="msg <%= m.sender === user ? 'me' : 'them' %>">
+        <%= m.message %>
+        <div class="msg-time"><%= m.time %></div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="chat-input">
+    <input type="text" id="msgInput" placeholder="Message likho...">
+    <button onclick="sendMsg()">Send</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const room = '<%= [user, chatWith].sort().join("_") %>';
+const me = '<%= user %>';
+const other = '<%= chatWith %>';
+
+socket.emit('userOnline', me);
+socket.emit('joinRoom', room);
+
+socket.on('onlineUsers', (users) => {
+  const badge = document.getElementById('statusBadge');
+  if (users.includes(other)) {
+    badge.className = 'online-badge on';
+    badge.textContent = '🟢 Online';
+  } else {
+    badge.className = 'online-badge off';
+    badge.textContent = '⚫ Offline';
+  }
+});
+
+socket.on('newMessage', (msg) => {
+  const box = document.getElementById('chatBox');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (msg.sender === me ? 'me' : 'them');
+  div.innerHTML = msg.message + '<div class="msg-time">' + msg.time + '</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+});
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  if (!input.value.trim()) return;
+  socket.emit('chatMessage', { room, sender: me, receiver: other, message: input.value });
+  input.value = '';
+}
+
+document.getElementById('msgInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendMsg();
+});
+
+document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Explore</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .grid-item { border-radius:14px; overflow:hidden; background:#f0f4ff; min-height:120px; cursor:pointer; position:relative; }
+    .grid-item img { width:100%; height:150px; object-fit:cover; }
+    .grid-item .info { padding:8px; font-size:13px; }
+    .grid-user { font-weight:700; color:#6a11cb; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/">← Home</a>
+  <h1>🌍 Explore</h1>
+  <div class="grid">
+    <% posts.forEach(p => { %>
+    <div class="grid-item">
+      <% if (p.image) { %>
+        <img src="<%= p.image %>">
+      <% } else { %>
+        <div style="height:150px;background:linear-gradient(135deg,#6a11cb,#2575fc);display:flex;align-items:center;justify-content:center;padding:10px">
+          <p style="color:white;font-size:13px;text-align:center"><%= p.content.substring(0,60) %>...</p>
+        </div>
+      <% } %>
+      <div class="info">
+        <div class="grid-user">👤 <%= p.user %></div>
+        <div style="color:#999;font-size:11px">❤️ <%= p.likes.length %></div>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+</div>
+</body>
+</html>

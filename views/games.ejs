@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Games</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .game-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; cursor: pointer; border: 2px solid #eee; transition: 0.3s; }
+    .game-card:hover { border-color: #2575fc; transform: translateY(-3px); }
+    .game-icon { font-size: 48px; margin-bottom: 10px; }
+    /* TIC TAC TOE */
+    .ttt-board { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; max-width: 250px; margin: 15px auto; }
+    .ttt-cell { height: 80px; background: #f0f0f0; border-radius: 12px; font-size: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #ddd; transition: 0.2s; }
+    .ttt-cell:hover { background: #e0e8ff; border-color: #2575fc; }
+    /* SNAKE */
+    #snakeCanvas { border-radius: 12px; background: #1a1a2e; display: block; margin: 10px auto; }
+    /* QUIZ */
+    .quiz-opt { width: 100%; padding: 12px; margin: 6px 0; border-radius: 12px; border: 2px solid #eee; background: #f9f9fc; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .quiz-opt:hover { border-color: #2575fc; background: #eef2ff; }
+    .quiz-opt.correct { background: #d4edda; border-color: #28a745; }
+    .quiz-opt.wrong { background: #f8d7da; border-color: #dc3545; }
+    .game-section { display: none; }
+    .game-section.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎮 Games</h1>
+  <a href="/">← Back</a>
+  <br><br>
+
+  <div id="menu">
+    <div class="game-card" onclick="showGame('ttt')">
+      <div class="game-icon">⭕</div>
+      <h3>Tic Tac Toe</h3>
+      <p>2 player game</p>
+    </div>
+    <div class="game-card" onclick="showGame('snake')">
+      <div class="game-icon">🐍</div>
+      <h3>Snake Game</h3>
+      <p>Classic snake!</p>
+    </div>
+    <div class="game-card" onclick="showGame('quiz')">
+      <div class="game-icon">🧠</div>
+      <h3>Quiz Game</h3>
+      <p>Test your knowledge!</p>
+    </div>
+  </div>
+
+  <!-- TIC TAC TOE -->
+  <div id="ttt" class="game-section">
+    <h2>⭕ Tic Tac Toe</h2>
+    <button onclick="showMenu()" style="width:auto;padding:8px 16px;margin-bottom:10px">← Back</button>
+    <p id="tttStatus">Player X ki baari hai!</p>
+    <div class="ttt-board" id="tttBoard"></div>
+    <button onclick="resetTTT()">🔄 Reset</button>
+  </div>
+
+  <!-- SNAKE -->
+  <div id="snake" class="game-section">
+    <h2>🐍 Snake Game</h2>
+    <button onclick="showMenu();stopSnake()" style="width:auto;padding:8px 16px;margin-bottom:10px">← Back</button>
+    <p>Score: <b id="snakeScore">0</b></p>
+    <canvas id="snakeCanvas" width="280" height="280"></canvas>
+    <p style="font-size:12px">Arrow keys ya WASD use karo</p>
+    <button onclick="startSnake()">▶️ Start</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" class="game-section">
+    <h2>🧠 Quiz Game</h2>
+    <button onclick="showMenu()" style="width:auto;padding:8px 16px;margin-bottom:10px">← Back</button>
+    <p>Score: <b id="quizScore">0</b> / <b id="quizTotal">0</b></p>
+    <div id="quizBox"></div>
+  </div>
+</div>
+
+<script>
+// ===== MENU =====
+function showGame(id) {
+  document.getElementById('menu').style.display = 'none';
+  document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'snake') startSnake();
+  if (id === 'quiz') startQuiz();
+  if (id === 'ttt') resetTTT();
+}
+function showMenu() {
+  document.getElementById('menu').style.display = 'block';
+  document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+}
+
+// ===== TIC TAC TOE =====
+let tttBoard = Array(9).fill('');
+let tttTurn = 'X';
+function resetTTT() {
+  tttBoard = Array(9).fill('');
+  tttTurn = 'X';
+  document.getElementById('tttStatus').textContent = 'Player X ki baari hai!';
+  renderTTT();
+}
+function renderTTT() {
+  const board = document.getElementById('tttBoard');
+  board.innerHTML = '';
+  tttBoard.forEach((cell, i) => {
+    const div = document.createElement('div');
+    div.className = 'ttt-cell';
+    div.textContent = cell;
+    div.style.color = cell === 'X' ? '#6a11cb' : '#ff6a88';
+    div.onclick = () => tttClick(i);
+    board.appendChild(div);
+  });
+}
+function tttClick(i) {
+  if (tttBoard[i] || checkTTTWin()) return;
+  tttBoard[i] = tttTurn;
+  const winner = checkTTTWin();
+  if (winner) {
+    document.getElementById('tttStatus').textContent = 'Player ' + winner + ' jeet gaya! 🎉';
+  } else if (!tttBoard.includes('')) {
+    document.getElementById('tttStatus').textContent = 'Draw! 🤝';
+  } else {
+    tttTurn = tttTurn === 'X' ? 'O' : 'X';
+    document.getElementById('tttStatus').textContent = 'Player ' + tttTurn + ' ki baari hai!';
+  }
+  renderTTT();
+}
+function checkTTTWin() {
+  const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,b,c] of wins) {
+    if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) return tttBoard[a];
+  }
+  return null;
+}
+resetTTT();
+
+// ===== SNAKE =====
+let snakeInterval, snake, food, dir, score;
+function startSnake() {
+  clearInterval(snakeInterval);
+  snake = [{x:140,y:140}];
+  food = {x:80,y:80};
+  dir = {x:10,y:0};
+  score = 0;
+  document.getElementById('snakeScore').textContent = 0;
+  snakeInterval = setInterval(drawSnake, 120);
+}
+function stopSnake() { clearInterval(snakeInterval); }
+function drawSnake() {
+  const c = document.getElementById('snakeCanvas');
+  if (!c) { stopSnake(); return; }
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0,0,280,280);
+  const head = {x: snake[0].x+dir.x, y: snake[0].y+dir.y};
+  if (head.x<0||head.x>=280||head.y<0||head.y>=280||snake.some(s=>s.x===head.x&&s.y===head.y)) {
+    clearInterval(snakeInterval);
+    ctx.fillStyle='white';
+    ctx.font='20px Arial';
+    ctx.fillText('Game Over! Score: '+score, 40, 140);
+    return;
+  }
+  snake.unshift(head);
+  if (head.x===food.x&&head.y===food.y) {
+    score++;
+    document.getElementById('snakeScore').textContent = score;
+    food = {x:Math.floor(Math.random()*28)*10, y:Math.floor(Math.random()*28)*10};
+  } else snake.pop();
+  ctx.fillStyle='#39ff14';
+  snake.forEach(s=>{ ctx.beginPath(); ctx.roundRect(s.x,s.y,9,9,3); ctx.fill(); });
+  ctx.fillStyle='#ff6a88';
+  ctx.beginPath(); ctx.arc(food.x+5,food.y+5,6,0,Math.PI*2); ctx.fill();
+}
+document.addEventListener('keydown', e => {
+  if(e.key==='ArrowUp'||e.key==='w') dir={x:0,y:-10};
+  if(e.key==='ArrowDown'||e.key==='s') dir={x:0,y:10};
+  if(e.key==='ArrowLeft'||e.key==='a') dir={x:-10,y:0};
+  if(e.key==='ArrowRight'||e.key==='d') dir={x:10,y:0};
+});
+
+// ===== QUIZ =====
+const questions = [
+  { q: 'HTML ka full form kya hai?', opts: ['Hyper Text Markup Language','High Tech Modern Language','Home Tool Markup Language','Hyper Transfer Method Language'], ans: 0 },
+  { q: 'CSS ka full form?', opts: ['Cascading Style Sheets','Computer Style System','Creative Style Sheets','Coded Style System'], ans: 0 },
+  { q: 'Node.js kis language mein hai?', opts: ['Python','Java','JavaScript','C++'], ans: 2 },
+  { q: 'HTTP ka port number?', opts: ['21','80','443','8080'], ans: 1 },
+  { q: 'Pakistan ka capital?', opts: ['Lahore','Karachi','Islamabad','Peshawar'], ans: 2 },
+  { q: 'Google ka founder kaun hai?', opts: ['Bill Gates','Elon Musk','Larry Page','Mark Zuckerberg'], ans: 2 },
+  { q: 'JavaScript mein array length?', opts: ['.size()','length','.count()','len()'], ans: 1 },
+  { q: 'Kali Linux kis kaam aata hai?', opts: ['Gaming','Ethical Hacking','Video Editing','Music'], ans: 1 },
+];
+let qIndex = 0, quizScore = 0;
+function startQuiz() {
+  qIndex = 0; quizScore = 0;
+  document.getElementById('quizScore').textContent = 0;
+  document.getElementById('quizTotal').textContent = questions.length;
+  showQuestion();
+}
+function showQuestion() {
+  const box = document.getElementById('quizBox');
+  if (qIndex >= questions.length) {
+    box.innerHTML = '<div class="post"><h3>Quiz Khatam! 🎉</h3><p>Score: '+quizScore+'/'+questions.length+'</p><button onclick="startQuiz()">🔄 Phir Khelna</button></div>';
+    return;
+  }
+  const q = questions[qIndex];
+  box.innerHTML = '<div class="post"><p style="font-weight:700">Q'+(qIndex+1)+': '+q.q+'</p>' +
+    q.opts.map((o,i) => '<button class="quiz-opt" onclick="answerQuiz('+i+',this)">'+o+'</button>').join('') + '</div>';
+}
+function answerQuiz(i, btn) {
+  const q = questions[qIndex];
+  document.querySelectorAll('.quiz-opt').forEach((b,j) => {
+    b.disabled = true;
+    if (j === q.ans) b.classList.add('correct');
+    else if (j === i) b.classList.add('wrong');
+  });
+  if (i === q.ans) { quizScore++; document.getElementById('quizScore').textContent = quizScore; }
+  setTimeout(() => { qIndex++; showQuestion(); }, 1000);
+}
+</script>
+</body>
+</html>

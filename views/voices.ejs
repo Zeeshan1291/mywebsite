@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Voice Messages</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    audio { width: 100%; margin: 8px 0; }
+    .record-box { background: #f9f9fc; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 2px dashed #2575fc; text-align: center; }
+    #recordBtn { background: linear-gradient(90deg, #ff6a88, #ff99ac); }
+    #recordBtn.recording { background: linear-gradient(90deg, #ff0000, #cc0000); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎤 Voice Messages</h1>
+  <a href="/">← Back</a>
+  <br><br>
+  <div class="record-box">
+    <h3>🎙️ Voice Record Karo</h3>
+    <p id="status">Record karne ke liye button dabao</p>
+    <br>
+    <button id="recordBtn" onclick="toggleRecord()">🔴 Record Start</button>
+    <br><br>
+    <audio id="preview" controls style="display:none"></audio>
+    <br>
+    <form id="uploadForm" method="POST" action="/voices/upload" enctype="multipart/form-data" style="display:none">
+      <input type="file" id="voiceFile" name="voice" style="display:none">
+      <button type="submit">📤 Send Voice</button>
+    </form>
+  </div>
+  <h3>📻 Saari Voice Messages</h3>
+  <% voices.slice().reverse().forEach(v => { %>
+    <div class="post">
+      <div class="post-user">@<%= v.user %></div>
+      <audio controls>
+        <source src="/voices/<%= v.filename %>">
+      </audio>
+      <br>
+      <small><%= v.time %></small>
+    </div>
+  <% }) %>
+</div>
+<script>
+let mediaRecorder, chunks = [], recording = false;
+async function toggleRecord() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('status');
+  if (!recording) {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    chunks = [];
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      const preview = document.getElementById('preview');
+      preview.src = url;
+      preview.style.display = 'block';
+      const file = new File([blob], 'voice.webm', { type: 'audio/webm' });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('voiceFile').files = dt.files;
+      document.getElementById('uploadForm').style.display = 'block';
+    };
+    mediaRecorder.start();
+    recording = true;
+    btn.textContent = '⏹️ Record Stop';
+    btn.classList.add('recording');
+    status.textContent = '🔴 Recording...';
+  } else {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    recording = false;
+    btn.textContent = '🔴 Record Start';
+    btn.classList.remove('recording');
+    status.textContent = '✅ Recording complete! Send karo.';
+  }
+}
+</script>
+</body>
+</html>

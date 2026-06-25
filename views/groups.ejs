@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Groups</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .group-card { background:#fff; border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); border-left:5px solid #6a11cb; text-align:left; }
+    .group-name { font-weight:800; font-size:17px; color:#333; }
+    .group-meta { font-size:13px; color:#888; margin:4px 0 10px; }
+    .btn-small { width:auto; padding:8px 18px; font-size:14px; border-radius:20px; margin:0 4px 0 0; display:inline-block; }
+    .btn-join { background:linear-gradient(90deg,#28a745,#20c997); }
+    .btn-open { background:linear-gradient(90deg,#6a11cb,#2575fc); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/">← Home</a>
+  <h1>👥 Groups</h1>
+
+  <div class="post">
+    <h3>➕ New Group</h3>
+    <form method="POST" action="/groups/create">
+      <input type="text" name="name" placeholder="Group ka naam..." required>
+      <button type="submit">Create Group</button>
+    </form>
+  </div>
+
+  <% groups.forEach(g => { %>
+  <div class="group-card">
+    <div class="group-name">👥 <%= g.name %></div>
+    <div class="group-meta">👤 Creator: <%= g.creator %> | 👥 Members: <%= g.members.length %></div>
+    <% if (g.members.includes(user)) { %>
+      <a href="/groups/<%= g.id %>"><button class="btn-small btn-open">💬 Open</button></a>
+    <% } else { %>
+      <form method="POST" action="/groups/join/<%= g.id %>" style="display:inline">
+        <button type="submit" class="btn-small btn-join">➕ Join</button>
+      </form>
+    <% } %>
+  </div>
+  <% }) %>
+
+  <% if (groups.length === 0) { %>
+    <p style="color:#999;text-align:center">Koi group nahi hai. Pehla group banao!</p>
+  <% } %>
+</div>
+</body>
+</html>

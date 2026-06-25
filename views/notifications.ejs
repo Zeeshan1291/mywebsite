@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Notifications</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .notif { background:#fff; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 3px 12px rgba(0,0,0,0.08); display:flex; align-items:center; gap:12px; border-left:4px solid #2575fc; }
+    .notif-icon { font-size:24px; }
+    .notif-text { font-size:14px; color:#333; }
+    .notif-time { font-size:11px; color:#999; margin-top:3px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/">← Home</a>
+  <h1>🔔 Notifications</h1>
+  <% if (notifs.length === 0) { %>
+    <p style="text-align:center;color:#999">Koi notification nahi!</p>
+  <% } %>
+  <% notifs.forEach(n => { %>
+  <div class="notif">
+    <div class="notif-icon">
+      <%= n.type === 'like' ? '❤️' : n.type === 'comment' ? '💬' : n.type === 'follow' ? '👤' : n.type === 'react' ? '😍' : '📨' %>
+    </div>
+    <div>
+      <div class="notif-text"><%= n.text %></div>
+      <div class="notif-time"><%= n.time %></div>
+    </div>
+  </div>
+  <% }) %>
+</div>
+</body>
+</html>

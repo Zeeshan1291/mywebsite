@@ -1,0 +1,8 @@
+{
+  "admins": ["Zeeshan Khan"],
+  "settings": {
+    "siteName": "MySocialApp",
+    "allowSignup": true,
+    "maintenanceMode": false
+  }
+}

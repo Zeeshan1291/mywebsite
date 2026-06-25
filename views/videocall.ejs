@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video Call</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
+    body { background: #1a1a2e; color: white; min-height: 100vh; }
+    .call-container { display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
+    h2 { margin: 15px 0; font-size: 20px; }
+    .videos { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; margin: 10px 0; }
+    video { border-radius: 16px; background: #0f0f1a; width: 100%; max-width: 340px; }
+    .controls { display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+    .btn { padding: 14px 24px; border-radius: 50px; border: none; font-size: 18px; cursor: pointer; font-weight: 700; transition: 0.2s; }
+    .btn:hover { transform: scale(1.05); }
+    .btn-green { background: #28a745; color: white; }
+    .btn-red { background: #dc3545; color: white; }
+    .btn-blue { background: #2575fc; color: white; }
+    .btn-gray { background: #555; color: white; }
+    .status { background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 20px; margin: 10px 0; font-size: 14px; }
+    .incoming { background: #28a745; padding: 20px; border-radius: 16px; text-align: center; margin: 10px 0; display: none; }
+  </style>
+</head>
+<body>
+<div class="call-container">
+  <h2>📞 Video Call with <%= callWith %></h2>
+  <div class="status" id="callStatus">Camera ready ho rahi hai...</div>
+  
+  <div class="incoming" id="incomingCall">
+    <p>📞 Incoming call!</p>
+    <button class="btn btn-green" onclick="acceptCall()">✅ Accept</button>
+    <button class="btn btn-red" onclick="rejectCall()">❌ Reject</button>
+  </div>
+
+  <div class="videos">
+    <div>
+      <p style="text-align:center;font-size:12px;margin-bottom:5px">Aap (You)</p>
+      <video id="localVideo" autoplay muted playsinline style="transform:scaleX(-1)"></video>
+    </div>
+    <div>
+      <p style="text-align:center;font-size:12px;margin-bottom:5px"><%= callWith %></p>
+      <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-green" onclick="startCall()" id="startBtn">📞 Call Karo</button>
+    <button class="btn btn-red" onclick="endCall()">📵 End</button>
+    <button class="btn btn-blue" onclick="toggleMic()" id="micBtn">🎤 Mic</button>
+    <button class="btn btn-gray" onclick="toggleCam()" id="camBtn">📷 Cam</button>
+    <button class="btn btn-gray" onclick="flipCamera()" id="flipBtn">🔄 Flip</button>
+  </div>
+  <a href="/chat/<%= callWith %>" style="color:#aaa;margin-top:15px;font-size:14px">← Back to Chat</a>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const me = '<%= user %>';
+const callWith = '<%= callWith %>';
+let localStream, peerConnection, micOn = true, camOn = true;
+let facingMode = 'user';
+let incomingSignal = null;
+
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+socket.emit('userOnline', me);
+
+socket.on('incomingCall', async ({ from, signal }) => {
+  incomingSignal = signal;
+  document.getElementById('incomingCall').style.display = 'block';
+  document.getElementById('callStatus').textContent = from + ' call kar raha hai...';
+});
+
+socket.on('callAccepted', async (signal) => {
+  document.getElementById('callStatus').textContent = '🟢 Connected!';
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+});
+
+socket.on('callEnded', () => {
+  document.getElementById('callStatus').textContent = 'Call khatam ho gayi';
+  if (peerConnection) peerConnection.close();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  document.getElementById('remoteVideo').srcObject = null;
+});
+
+async function getMedia() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('callStatus').textContent = '✅ Camera ready! Call karo.';
+  } catch(e) {
+    document.getElementById('callStatus').textContent = '❌ Camera access denied. Settings check karo.';
+  }
+}
+
+async function startCall() {
+  if (!localStream) await getMedia();
+  peerConnection = new RTCPeerConnection(config);
+  localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+  
+  peerConnection.ontrack = (e) => {
+    document.getElementById('remoteVideo').srcObject = e.streams[0];
+  };
+  
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) socket.emit('callUser', { to: callWith, from: me, signal: peerConnection.localDescription });
+  };
+  
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  socket.emit('callUser', { to: callWith, from: me, signal: offer });
+  document.getElementById('callStatus').textContent = '📞 Calling ' + callWith + '...';
+  document.getElementById('startBtn').disabled = true;
+}
+
+async function acceptCall() {
+  document.getElementById('incomingCall').style.display = 'none';
+  if (!localStream) await getMedia();
+  peerConnection = new RTCPeerConnection(config);
+  localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+  
+  peerConnection.ontrack = (e) => {
+    document.getElementById('remoteVideo').srcObject = e.streams[0];
+  };
+  
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) socket.emit('answerCall', { to: callWith, signal: peerConnection.localDescription });
+  };
+  
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingSignal));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  socket.emit('answerCall', { to: callWith, signal: answer });
+  document.getElementById('callStatus').textContent = '🟢 Connected!';
+}
+
+function rejectCall() {
+  document.getElementById('incomingCall').style.display = 'none';
+  socket.emit('endCall', { to: callWith });
+}
+
+function endCall() {
+  if (peerConnection) peerConnection.close();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  socket.emit('endCall', { to: callWith });
+  document.getElementById('callStatus').textContent = 'Call khatam';
+  document.getElementById('remoteVideo').srcObject = null;
+  document.getElementById('startBtn').disabled = false;
+}
+
+function toggleMic() {
+  micOn = !micOn;
+  localStream?.getAudioTracks().forEach(t => t.enabled = micOn);
+  document.getElementById('micBtn').textContent = micOn ? '🎤 Mic' : '🔇 Muted';
+}
+
+function toggleCam() {
+  camOn = !camOn;
+  localStream?.getVideoTracks().forEach(t => t.enabled = camOn);
+  document.getElementById('camBtn').textContent = camOn ? '📷 Cam' : '📷 Off';
+}
+
+async function flipCamera() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+    document.getElementById('localVideo').srcObject = localStream;
+    if (peerConnection) {
+      const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) sender.replaceTrack(localStream.getVideoTracks()[0]);
+    }
+  }
+}
+
+// Auto start camera
+getMedia();
+</script>
+</body>
+</html>

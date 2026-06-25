@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Messages</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .contact { display: flex; align-items: center; padding: 15px; border-radius: 12px; margin-bottom: 10px; background: #f9f9fc; cursor: pointer; text-decoration: none; color: #333; border-left: 4px solid #2575fc; }
+    .contact:hover { background: #eef2ff; }
+    .avatar { width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(90deg, #6a11cb, #2575fc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; margin-right: 15px; }
+    .contact-name { font-weight: 700; color: #333; }
+    .online-dot { width: 10px; height: 10px; background: #39ff14; border-radius: 50%; display: inline-block; margin-left: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>💬 Messages</h1>
+  <a href="/">← Back</a>
+  <br><br>
+  <% if (contacts.length === 0) { %>
+    <p>Koi user nahi mila!</p>
+  <% } %>
+  <% contacts.forEach(c => { %>
+    <a href="/messages/<%= c.username %>" class="contact">
+      <div class="avatar"><%= c.username[0].toUpperCase() %></div>
+      <div>
+        <div class="contact-name">@<%= c.username %> <span class="online-dot"></span></div>
+        <small style="color:#888">Tap to chat</small>
+      </div>
+    </a>
+  <% }) %>
+</div>
+</body>
+</html>

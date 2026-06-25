@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Voice Call</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; }
+    body { background:#1a1a2e; color:white; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+    .call-box { text-align:center; padding:40px; }
+    .avatar { width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg,#6a11cb,#2575fc); display:flex; align-items:center; justify-content:center; font-size:50px; margin:0 auto 20px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(106,17,203,0.5)} 50%{box-shadow:0 0 0 20px rgba(106,17,203,0)} }
+    .status { font-size:18px; margin:15px 0; opacity:0.8; }
+    .controls { display:flex; gap:15px; justify-content:center; margin-top:25px; flex-wrap:wrap; }
+    .btn { width:65px; height:65px; border-radius:50%; border:none; font-size:24px; cursor:pointer; transition:0.2s; }
+    .btn:hover { transform:scale(1.1); }
+    .btn-red { background:#dc3545; }
+    .btn-green { background:#28a745; }
+    .btn-blue { background:#2575fc; }
+    .btn-gray { background:#555; }
+    .incoming { background:rgba(40,167,69,0.2); border:2px solid #28a745; border-radius:16px; padding:20px; margin:20px 0; display:none; }
+  </style>
+</head>
+<body>
+<div class="call-box">
+  <div class="avatar">👤</div>
+  <h2><%= callWith %></h2>
+  <div class="status" id="status">Ready...</div>
+
+  <div class="incoming" id="incomingDiv">
+    <p>📞 Incoming voice call!</p>
+    <br>
+    <button class="btn btn-green" onclick="acceptCall()">✅</button>
+    <button class="btn btn-red" onclick="rejectCall()">❌</button>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-green" onclick="startCall()" id="callBtn">📞</button>
+    <button class="btn btn-red" onclick="endCall()">📵</button>
+    <button class="btn btn-blue" onclick="toggleMic()" id="micBtn">🎤</button>
+    <button class="btn btn-gray" onclick="toggleSpeaker()" id="spkBtn">🔊</button>
+  </div>
+  <br>
+  <a href="/chat/<%= callWith %>" style="color:#aaa;font-size:14px">← Back to Chat</a>
+</div>
+
+<audio id="remoteAudio" autoplay></audio>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const me = '<%= user %>';
+const callWith = '<%= callWith %>';
+let localStream, peer, micOn = true, incomingSignal;
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+socket.emit('userOnline', me);
+
+async function getAudio() {
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+}
+
+async function startCall() {
+  await getAudio();
+  peer = new RTCPeerConnection(config);
+  localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
+  peer.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+  peer.onicecandidate = e => {
+    if (e.candidate) socket.emit('callUser', { to: callWith, from: me, signal: peer.localDescription, type: 'voice' });
+  };
+  const offer = await peer.createOffer();
+  await peer.setLocalDescription(offer);
+  socket.emit('callUser', { to: callWith, from: me, signal: offer, type: 'voice' });
+  document.getElementById('status').textContent = '📞 Calling ' + callWith + '...';
+  document.getElementById('callBtn').disabled = true;
+}
+
+socket.on('incomingCall', async ({ from, signal }) => {
+  incomingSignal = signal;
+  document.getElementById('incomingDiv').style.display = 'block';
+  document.getElementById('status').textContent = from + ' call kar raha hai...';
+});
+
+async function acceptCall() {
+  document.getElementById('incomingDiv').style.display = 'none';
+  await getAudio();
+  peer = new RTCPeerConnection(config);
+  localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
+  peer.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+  peer.onicecandidate = e => {
+    if (e.candidate) socket.emit('answerCall', { to: callWith, signal: peer.localDescription });
+  };
+  await peer.setRemoteDescription(new RTCSessionDescription(incomingSignal));
+  const answer = await peer.createAnswer();
+  await peer.setLocalDescription(answer);
+  socket.emit('answerCall', { to: callWith, signal: answer });
+  document.getElementById('status').textContent = '🟢 Connected!';
+}
+
+function rejectCall() {
+  document.getElementById('incomingDiv').style.display = 'none';
+  socket.emit('endCall', { to: callWith });
+}
+
+function endCall() {
+  if (peer) peer.close();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  socket.emit('endCall', { to: callWith });
+  document.getElementById('status').textContent = 'Call khatam';
+  document.getElementById('callBtn').disabled = false;
+}
+
+function toggleMic() {
+  micOn = !micOn;
+  localStream?.getAudioTracks().forEach(t => t.enabled = micOn);
+  document.getElementById('micBtn').textContent = micOn ? '🎤' : '🔇';
+}
+
+function toggleSpeaker() {
+  const audio = document.getElementById('remoteAudio');
+  audio.muted = !audio.muted;
+  document.getElementById('spkBtn').textContent = audio.muted ? '🔈' : '🔊';
+}
+
+socket.on('callAccepted', async signal => {
+  await peer.setRemoteDescription(new RTCSessionDescription(signal));
+  document.getElementById('status').textContent = '🟢 Connected!';
+});
+
+socket.on('callEnded', () => {
+  document.getElementById('status').textContent = 'Call khatam ho gayi';
+  if (peer) peer.close();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+});
+</script>
+</body>
+</html>

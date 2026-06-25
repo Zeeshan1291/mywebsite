@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Saved Posts</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container">
+  <h1>🔖 Saved Posts</h1>
+  <a href="/">← Back</a>
+  <br><br>
+  <% if (posts.length === 0) { %>
+    <p>Koi saved post nahi hai!</p>
+  <% } %>
+  <% posts.forEach(post => { %>
+    <div class="post">
+      <div class="post-user">@<%= post.username %></div>
+      <div class="post-content"><%= post.content %></div>
+    </div>
+  <% }) %>
+</div>
+</body>
+</html>

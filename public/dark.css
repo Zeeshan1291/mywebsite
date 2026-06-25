@@ -1,0 +1,11 @@
+body { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460) !important; }
+.container { background: rgba(25,25,40,0.98) !important; color: #eee !important; }
+.post { background: #1e1e2f !important; color: #eee !important; border-left-color: #6a11cb !important; }
+input, textarea { background: #2a2a3d !important; color: #eee !important; border-color: #444 !important; }
+h1 { background: linear-gradient(90deg, #a16eff, #00c6ff) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; }
+h2, h3 { color: #ddd !important; }
+p, label { color: #ccc !important; }
+.post-content { color: #ddd !important; }
+.comment { background: #2a2a3d !important; color: #ccc !important; }
+.game-card { background: #1e1e2f !important; border-color: #333 !important; color: #eee !important; }
+.user-item { background: #1e1e2f !important; border-color: #333 !important; }

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= g.name %></title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container">
+  <h1>👥 <%= g.name %></h1>
+  <p><%= g.description %></p>
+  <a href="/groups">← Back</a>
+  <br><br>
+  <% if (g.members.includes(user)) { %>
+    <form method="POST" action="/groups/<%= g.id %>/post">
+      <textarea name="content" placeholder="Kuch likho..." required></textarea>
+      <button type="submit">📝 Post</button>
+    </form>
+  <% } %>
+  <br>
+  <% g.posts.slice().reverse().forEach(p => { %>
+    <div class="post">
+      <div class="post-user">@<%= p.user %></div>
+      <div class="post-content"><%= p.content %></div>
+      <small><%= p.time %></small>
+    </div>
+  <% }) %>
+</div>
+</body>
+</html>

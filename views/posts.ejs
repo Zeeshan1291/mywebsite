@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Posts</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .stories-row { display:flex; gap:12px; overflow-x:auto; padding:10px 0; margin-bottom:15px; }
+    .story-circle { text-align:center; cursor:pointer; flex-shrink:0; }
+    .story-circle img, .story-circle .story-av { width:60px; height:60px; border-radius:50%; border:3px solid #6a11cb; object-fit:cover; }
+    .story-av { background:linear-gradient(135deg,#6a11cb,#2575fc); display:flex; align-items:center; justify-content:center; font-size:24px; }
+    .story-circle p { font-size:11px; margin-top:4px; color:#555; }
+    .reactions { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+    .react-btn { background:#f0f0f0; border:none; border-radius:20px; padding:5px 12px; font-size:16px; cursor:pointer; transition:0.2s; }
+    .react-btn:hover { background:#e0e8ff; transform:scale(1.1); }
+    .react-count { font-size:12px; background:#eef2ff; border-radius:20px; padding:4px 10px; }
+    .post-img { width:100%; border-radius:12px; margin:10px 0; max-height:300px; object-fit:cover; }
+    .search-bar { display:flex; gap:8px; margin-bottom:15px; }
+    .search-bar input { flex:1; margin:0; }
+    .search-bar button { width:auto; padding:10px 18px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/">← Home</a>
+  <h1>📝 Posts</h1>
+
+  <!-- Story search -->
+  <form method="GET" action="/search/posts" class="search-bar">
+    <input type="text" name="q" placeholder="🔍 Posts mein search karo...">
+    <button type="submit">Search</button>
+  </form>
+
+  <!-- Stories -->
+  <div class="stories-row">
+    <div class="story-circle" onclick="document.getElementById('storyForm').style.display='block'">
+      <div class="story-av">➕</div>
+      <p>Add Story</p>
+    </div>
+    <% stories.forEach(s => { %>
+    <a href="/story/<%= s.id %>" class="story-circle" style="text-decoration:none">
+      <% const su = users.find(u => u.username === s.user); %>
+      <% if (su && su.avatar) { %>
+        <img src="<%= su.avatar %>">
+      <% } else { %>
+        <div class="story-av">👤</div>
+      <% } %>
+      <p><%= s.user %></p>
+    </a>
+    <% }) %>
+  </div>
+
+  <!-- Add Story Form -->
+  <div id="storyForm" style="display:none" class="post">
+    <h3>📸 Add Story</h3>
+    <form method="POST" action="/story" enctype="multipart/form-data">
+      <input type="text" name="text" placeholder="Story text...">
+      <input type="file" name="image" accept="image/*">
+      <button type="submit">📤 Share Story</button>
+    </form>
+  </div>
+
+  <!-- New Post -->
+  <div class="post">
+    <h3>✍️ Naya Post</h3>
+    <form method="POST" action="/post" enctype="multipart/form-data">
+      <textarea name="content" placeholder="Kya soch rahe ho?"></textarea>
+      <input type="file" name="image" accept="image/*">
+      <button type="submit">📤 Post Karo</button>
+    </form>
+  </div>
+
+  <!-- Posts List -->
+  <% posts.forEach(p => { %>
+  <div class="post">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <% const pu = users.find(u => u.username === p.user); %>
+      <% if (pu && pu.avatar) { %>
+        <img src="<%= pu.avatar %>" style="width:36px;height:36px;border-radius:50%;object-fit:cover">
+      <% } else { %>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6a11cb,#2575fc);display:flex;align-items:center;justify-content:center;font-size:16px">👤</div>
+      <% } %>
+      <div>
+        <a href="/profile/<%= p.user %>" class="post-user"><%= p.user %></a>
+        <div style="font-size:11px;color:#999"><%= p.time %></div>
+      </div>
+    </div>
+
+    <% if (p.content) { %><div class="post-content"><%= p.content %></div><% } %>
+    <% if (p.image) { %><img src="<%= p.image %>" class="post-img"><% } %>
+
+    <!-- Reactions -->
+    <div class="reactions">
+      <% ['❤️','😂','😮','😢','😡','👍'].forEach(emoji => { %>
+      <form method="POST" action="/react/<%= p.id %>" style="display:inline">
+        <input type="hidden" name="emoji" value="<%= emoji %>">
+        <button class="react-btn" type="submit"><%= emoji %></button>
+      </form>
+      <% }) %>
+    </div>
+
+    <!-- Reaction counts -->
+    <% if (p.reactions) { %>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <% Object.entries(p.reactions).forEach(([emoji, users2]) => { %>
+        <% if (users2.length > 0) { %>
+          <span class="react-count"><%= emoji %> <%= users2.length %></span>
+        <% } %>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <!-- Like -->
+    <form method="POST" action="/like/<%= p.id %>" style="display:inline">
+      <button class="like-btn">❤️ <%= p.likes.length %></button>
+    </form>
+
+    <!-- Comments -->
+    <div style="margin-top:10px">
+      <% p.comments.forEach(c => { %>
+        <div class="comment"><b><%= c.user %>:</b> <%= c.text %></div>
+      <% }) %>
+      <form method="POST" action="/comment/<%= p.id %>" style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" name="comment" placeholder="Comment..." style="margin:0;flex:1">
+        <button type="submit" style="width:auto;padding:10px 14px;font-size:13px">💬</button>
+      </form>
+    </div>
+  </div>
+  <% }) %>
+</div>
+</body>
+</html>

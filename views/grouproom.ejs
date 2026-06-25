@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= group.name %></title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .chat-box { height:400px; overflow-y:auto; background:#f0f4ff; border-radius:12px; padding:12px; margin:10px 0; }
+    .msg { padding:9px 14px; border-radius:18px; margin:6px 0; max-width:78%; font-size:15px; word-break:break-word; }
+    .msg.me { background:linear-gradient(90deg,#6a11cb,#2575fc); color:white; margin-left:auto; text-align:right; }
+    .msg.them { background:#e0e0e0; color:#333; }
+    .msg-sender { font-size:11px; font-weight:700; opacity:0.8; margin-bottom:3px; }
+    .msg-time { font-size:10px; opacity:0.7; margin-top:2px; }
+    .chat-input { display:flex; gap:8px; margin-top:10px; }
+    .chat-input input { margin-bottom:0; flex:1; }
+    .chat-input button { width:auto; padding:12px 20px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/groups">← Groups</a>
+  <h1>👥 <%= group.name %></h1>
+  <p style="font-size:13px;color:#888">Members: <%= group.members.join(', ') %></p>
+
+  <div class="chat-box" id="chatBox">
+    <% (group.messages || []).forEach(m => { %>
+      <div class="msg <%= m.sender === user ? 'me' : 'them' %>">
+        <% if (m.sender !== user) { %><div class="msg-sender"><%= m.sender %></div><% } %>
+        <%= m.message %>
+        <div class="msg-time"><%= m.time %></div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="chat-input">
+    <input type="text" id="msgInput" placeholder="Message...">
+    <button onclick="sendMsg()">📤</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const me = '<%= user %>';
+const groupId = '<%= group.id %>';
+
+socket.emit('userOnline', me);
+socket.emit('joinGroup', groupId);
+
+socket.on('groupMsg', (msg) => {
+  const box = document.getElementById('chatBox');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (msg.sender === me ? 'me' : 'them');
+  div.innerHTML = (msg.sender !== me ? '<div class="msg-sender">'+msg.sender+'</div>' : '') +
+    msg.message + '<div class="msg-time">'+msg.time+'</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+});
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  if (!input.value.trim()) return;
+  socket.emit('groupMessage', { groupId, sender: me, message: input.value });
+  input.value = '';
+}
+
+document.getElementById('msgInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendMsg();
+});
+
+document.getElementById('chatBox').scrollTop = 999999;
+</script>
+</body>
+</html>

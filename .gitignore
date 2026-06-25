@@ -1,2 +1,4 @@
 node_modules/
 *.log
+savetoken.sh
+savetoken.sh.save

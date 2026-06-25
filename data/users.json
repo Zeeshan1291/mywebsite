@@ -2,8 +2,8 @@
   {
     "username": "Zeeshan Khan ",
     "password": "aass1122",
-    "bio": "",
-    "avatar": "",
+    "bio": "My name zeeshan Niazi 😈🔥🔥",
+    "avatar": "/uploads/442e38e2-17cf-4607-821b-97422a14db51.jpg",
     "theme": "dark",
     "friends": []
   },
@@ -78,6 +78,36 @@
     "bio": "",
     "avatar": "",
     "theme": "light",
+    "followers": [],
+    "following": [],
+    "isPrivate": false
+  },
+  {
+    "username": "Hacking zeeshan ",
+    "password": "aass1122",
+    "bio": "",
+    "avatar": "",
+    "theme": "light",
+    "followers": [],
+    "following": [],
+    "isPrivate": false
+  },
+  {
+    "username": "Rehan",
+    "password": "aass1122",
+    "bio": "",
+    "avatar": "",
+    "theme": "light",
+    "followers": [],
+    "following": [],
+    "isPrivate": false
+  },
+  {
+    "username": "Jmeelkhan12",
+    "password": "aass1122",
+    "bio": "",
+    "avatar": "",
+    "theme": "dark",
     "followers": [],
     "following": [],
     "isPrivate": false

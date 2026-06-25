@@ -4,7 +4,8 @@
     "user": "Zeeshan hacker ",
     "content": "Hi",
     "likes": [
-      "Zeeshan hacker "
+      "Zeeshan hacker ",
+      "Jmeelkhan12"
     ],
     "comments": [],
     "time": "6/25/2026, 9:41:16 AM"
@@ -15,8 +16,30 @@
     "content": "",
     "image": null,
     "likes": [],
-    "reactions": {},
+    "reactions": {
+      "😮": []
+    },
     "comments": [],
     "time": "6/25/2026, 10:05:00 AM"
+  },
+  {
+    "id": "b82cb1ed-b464-4ae2-84c0-b7db8f4410ff",
+    "user": "Zeeshan Khan ",
+    "content": "Welcome new website ",
+    "image": "/uploads/7e21787c-f277-49a6-a71d-57872a7138fb.png",
+    "likes": [
+      "Zeeshan Khan ",
+      "Jmeelkhan12"
+    ],
+    "reactions": {
+      "❤️": [
+        "Zeeshan Khan "
+      ],
+      "😂": [
+        "Zeeshan Khan "
+      ]
+    },
+    "comments": [],
+    "time": "6/25/2026, 7:28:10 PM"
   }
 ]

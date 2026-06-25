@@ -33,7 +33,7 @@
   </form>
   <br>
   <!-- Admin -->
-  <% if (adminData.admins.includes(user)) { %>
+  <% if (typeof adminData !== 'undefined' && adminData && adminData.admins && adminData.admins.includes(user)) { %>
   <a href="/admin"><button style="background:linear-gradient(90deg,#dc3545,#ff6a88);margin-bottom:10px">👑 Admin Panel</button></a>
   <% } %>
   <a href="/logout">🚪 Logout</a>

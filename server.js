@@ -63,9 +63,7 @@ function addNotif(to, from, type, text) {
 app.get('/', requireLogin, (req, res) => {
   const u = getUsers().find(x => x.username === req.session.user);
   const notifs = getNotifs().filter(n => n.to === req.session.user && !n.read);
-  let adminData = { admins: [] };
-  if (fs.existsSync('data/admin.json')) adminData = JSON.parse(fs.readFileSync('data/admin.json'));
-  res.render('home', { user: req.session.user, theme: u?.theme || 'light', unread: notifs.length, adminData });
+  res.render('home', { user: req.session.user, theme: u?.theme || 'light', unread: notifs.length });
 });
 
 app.get('/signup', (req, res) => res.render('signup', { error: null }));
@@ -82,8 +80,8 @@ app.post('/signup', (req, res) => {
 app.get('/login', (req, res) => res.render('login', { error: null }));
 app.post('/login', (req, res) => {
   const u = getUsers().find(x => x.username === req.body.username && x.password === req.body.password);
-  if (u && u.banned) return res.render("login", { error: "Account banned hai!" });
   if (!u) return res.render('login', { error: 'Wrong credentials!' });
+  if (u.banned) return res.render('login', { error: 'Account banned hai!' });
   req.session.user = u.username;
   res.redirect('/');
 });
@@ -109,7 +107,6 @@ app.post('/profile/update', requireLogin, upload.single('avatar'), (req, res) =>
   const idx = users.findIndex(x => x.username === req.session.user);
   if (req.body.bio !== undefined) users[idx].bio = req.body.bio;
   if (req.file) users[idx].avatar = '/uploads/' + req.file.filename;
-  if (req.body.isPrivate !== undefined) users[idx].isPrivate = req.body.isPrivate === 'on';
   saveUsers(users);
   res.redirect('/profile');
 });
@@ -122,7 +119,6 @@ app.post('/theme', requireLogin, (req, res) => {
   res.redirect('/');
 });
 
-// Follow/Unfollow
 app.post('/follow/:username', requireLogin, (req, res) => {
   const users = getUsers();
   const me = users.find(x => x.username === req.session.user);
@@ -146,7 +142,6 @@ app.post('/follow/:username', requireLogin, (req, res) => {
 // ===== POSTS =====
 app.get('/posts', requireLogin, (req, res) => {
   const u = getUsers().find(x => x.username === req.session.user);
-  // Clean old stories
   const now = Date.now();
   const stories = getStories().filter(s => now - s.time < 24 * 60 * 60 * 1000);
   saveStories(stories);
@@ -207,13 +202,12 @@ app.post('/comment/:id', requireLogin, (req, res) => {
   const post = posts.find(p => p.id == req.params.id);
   if (post) {
     post.comments.push({ user: req.session.user, text: req.body.comment });
-    if (post.user !== req.session.user) addNotif(post.user, req.session.user, 'comment', req.session.user + ' ne comment kiya: ' + req.body.comment);
+    if (post.user !== req.session.user) addNotif(post.user, req.session.user, 'comment', req.session.user + ' ne comment kiya!');
     savePosts(posts);
   }
   res.redirect('/posts');
 });
 
-// Post Search
 app.get('/search/posts', requireLogin, (req, res) => {
   const q = req.query.q || '';
   const posts = q ? getPosts().filter(p => p.content.toLowerCase().includes(q.toLowerCase())).reverse() : [];
@@ -223,14 +217,7 @@ app.get('/search/posts', requireLogin, (req, res) => {
 // ===== STORIES =====
 app.post('/story', requireLogin, upload.single('image'), (req, res) => {
   const stories = getStories();
-  stories.push({
-    id: uuidv4(),
-    user: req.session.user,
-    text: req.body.text || '',
-    image: req.file ? '/uploads/' + req.file.filename : null,
-    time: Date.now(),
-    views: []
-  });
+  stories.push({ id: uuidv4(), user: req.session.user, text: req.body.text || '', image: req.file ? '/uploads/' + req.file.filename : null, time: Date.now(), views: [] });
   saveStories(stories);
   res.redirect('/posts');
 });
@@ -239,10 +226,7 @@ app.get('/story/:id', requireLogin, (req, res) => {
   const stories = getStories();
   const s = stories.find(x => x.id === req.params.id);
   if (!s) return res.redirect('/posts');
-  if (!s.views.includes(req.session.user)) {
-    s.views.push(req.session.user);
-    saveStories(stories);
-  }
+  if (!s.views.includes(req.session.user)) { s.views.push(req.session.user); saveStories(stories); }
   res.render('story', { story: s, user: req.session.user });
 });
 
@@ -265,9 +249,7 @@ app.get('/search', requireLogin, (req, res) => {
 
 // ===== EXPLORE =====
 app.get('/explore', requireLogin, (req, res) => {
-  const posts = getPosts().reverse();
-  const users = getUsers();
-  res.render('explore', { posts, user: req.session.user, users });
+  res.render('explore', { posts: getPosts().reverse(), user: req.session.user, users: getUsers() });
 });
 
 // ===== CHAT =====
@@ -330,238 +312,7 @@ app.get('/games', requireLogin, (req, res) => {
   res.render('games', { user: req.session.user });
 });
 
-// ===== PWA =====
-app.get('/manifest.json', (req, res) => {
-  res.json({
-    name: 'MySocialApp',
-    short_name: 'SocialApp',
-    start_url: '/',
-    display: 'standalone',
-    background_color: '#6a11cb',
-    theme_color: '#2575fc',
-    icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
-  });
-});
-
-// ===== SOCKET.IO =====
-io.on('connection', (socket) => {
-  socket.on('userOnline', (username) => {
-    onlineUsers.set(username, socket.id);
-    io.emit('onlineUsers', Array.from(onlineUsers.keys()));
-  });
-
-  socket.on('joinRoom', room => socket.join(room));
-  socket.on('joinGroup', groupId => socket.join('group_' + groupId));
-
-  socket.on('chatMessage', (data) => {
-    const { room, sender, receiver, message } = data;
-    const msg = { sender, message, time: new Date().toLocaleTimeString() };
-    const chatFile = `data/chat_${[sender, receiver].sort().join('_')}.json`;
-    const msgs = fs.existsSync(chatFile) ? JSON.parse(fs.readFileSync(chatFile)) : [];
-    msgs.push(msg);
-    fs.writeFileSync(chatFile, JSON.stringify(msgs));
-    io.to(room).emit('newMessage', msg);
-    addNotif(receiver, sender, 'msg', sender + ' ne message bheja!');
-  });
-
-  socket.on('groupMessage', (data) => {
-    const { groupId, sender, message } = data;
-    const msg = { sender, message, time: new Date().toLocaleTimeString() };
-    const groups = getGroups();
-    const g = groups.find(x => x.id === groupId);
-    if (g) {
-      if (!g.messages) g.messages = [];
-      g.messages.push(msg);
-      saveGroups(groups);
-      io.to('group_' + groupId).emit('groupMsg', msg);
-    }
-  });
-
-  socket.on('callUser', (data) => {
-    const target = onlineUsers.get(data.to);
-    if (target) io.to(target).emit('incomingCall', { from: data.from, signal: data.signal, type: data.type || 'video' });
-  });
-
-  socket.on('answerCall', (data) => {
-    const target = onlineUsers.get(data.to);
-    if (target) io.to(target).emit('callAccepted', data.signal);
-  });
-
-  socket.on('endCall', (data) => {
-    const target = onlineUsers.get(data.to);
-    if (target) io.to(target).emit('callEnded');
-  });
-
-  socket.on('startLive', (data) => socket.broadcast.emit('liveStarted', data));
-  socket.on('liveChatMsg', (data) => socket.broadcast.emit('liveChatMsg', data));
-
-  socket.on('disconnect', () => {
-    for (const [user, id] of onlineUsers.entries()) {
-      if (id === socket.id) { onlineUsers.delete(user); break; }
-    }
-    io.emit('onlineUsers', Array.from(onlineUsers.keys()));
-  });
-});
-
-server.listen(8080, () => console.log('✅ Server on port 8080'));
-
-// ===== ADMIN =====
-const getAdmin = () => JSON.parse(fs.readFileSync('data/admin.json'));
-const saveAdmin = d => fs.writeFileSync('data/admin.json', JSON.stringify(d, null, 2));
-
-const requireAdmin = (req, res, next) => {
-  const admin = getAdmin();
-  if (req.session.user && admin.admins.includes(req.session.user)) return next();
-  res.redirect('/');
-};
-
-app.get('/admin', requireAdmin, (req, res) => {
-  const users = getUsers();
-  const posts = getPosts();
-  const groups = getGroups();
-  const admin = getAdmin();
-  res.render('admin', {
-    user: req.session.user,
-    users, posts, groups,
-    settings: admin.settings,
-    admins: admin.admins,
-    onlineCount: onlineUsers.size,
-    onlineList: Array.from(onlineUsers.keys())
-  });
-});
-
-// Ban user
-app.post('/admin/ban/:username', requireAdmin, (req, res) => {
-  const users = getUsers();
-  const idx = users.findIndex(x => x.username === req.params.username);
-  if (idx > -1) { users[idx].banned = !users[idx].banned; saveUsers(users); }
-  res.redirect('/admin');
-});
-
-// Delete user
-app.post('/admin/deleteuser/:username', requireAdmin, (req, res) => {
-  let users = getUsers();
-  users = users.filter(x => x.username !== req.params.username);
-  saveUsers(users);
-  res.redirect('/admin');
-});
-
-// Delete post
-app.post('/admin/deletepost/:id', requireAdmin, (req, res) => {
-  let posts = getPosts();
-  posts = posts.filter(p => p.id !== req.params.id);
-  savePosts(posts);
-  res.redirect('/admin');
-});
-
-// Make admin
-app.post('/admin/makeadmin/:username', requireAdmin, (req, res) => {
-  const admin = getAdmin();
-  if (!admin.admins.includes(req.params.username)) {
-    admin.admins.push(req.params.username);
-    saveAdmin(admin);
-  }
-  res.redirect('/admin');
-});
-
-// Remove admin
-app.post('/admin/removeadmin/:username', requireAdmin, (req, res) => {
-  const admin = getAdmin();
-  if (req.params.username !== 'Zeeshan Khan') {
-    admin.admins = admin.admins.filter(x => x !== req.params.username);
-    saveAdmin(admin);
-  }
-  res.redirect('/admin');
-});
-
-// Update settings
-app.post('/admin/settings', requireAdmin, (req, res) => {
-  const admin = getAdmin();
-  admin.settings.siteName = req.body.siteName;
-  admin.settings.allowSignup = req.body.allowSignup === 'on';
-  admin.settings.maintenanceMode = req.body.maintenanceMode === 'on';
-  saveAdmin(admin);
-  res.redirect('/admin');
-});
-
-// Broadcast message
-app.post('/admin/broadcast', requireAdmin, (req, res) => {
-  const users = getUsers();
-  const notifs = getNotifs();
-  users.forEach(u => {
-    notifs.push({
-      id: uuidv4(),
-      to: u.username,
-      from: 'Admin',
-      type: 'broadcast',
-      text: '📢 Admin: ' + req.body.message,
-      read: false,
-      time: new Date().toLocaleString()
-    });
-  });
-  saveNotifs(notifs);
-  res.redirect('/admin');
-});
-
-// Clear all posts
-app.post('/admin/clearposts', requireAdmin, (req, res) => {
-  savePosts([]);
-  res.redirect('/admin');
-});
-
 // ===== VIDEO DOWNLOADER =====
-const ytdl = require('ytdl-core');
-
-app.get('/downloader', requireLogin, (req, res) => {
-  res.render('downloader', { user: req.session.user });
-});
-
-app.post('/download', requireLogin, async (req, res) => {
-  try {
-    const url = req.body.url;
-    const quality = req.body.quality || 'highest';
-    
-    if (!ytdl.validateURL(url)) {
-      return res.json({ error: 'Invalid URL!' });
-    }
-    
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title;
-    const thumbnail = info.videoDetails.thumbnails[0].url;
-    const duration = info.videoDetails.lengthSeconds;
-    
-    res.json({ 
-      success: true, 
-      title, 
-      thumbnail,
-      duration,
-      downloadUrl: `/stream?url=${encodeURIComponent(url)}&quality=${quality}`
-    });
-  } catch(e) {
-    res.json({ error: 'Video nahi mili! URL check karo.' });
-  }
-});
-
-app.get('/stream', requireLogin, async (req, res) => {
-  try {
-    const url = decodeURIComponent(req.query.url);
-    const quality = req.query.quality || 'highest';
-    
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-    
-    res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-    res.header('Content-Type', 'video/mp4');
-    
-    ytdl(url, { quality: quality === 'audio' ? 'highestaudio' : 'highest' }).pipe(res);
-  } catch(e) {
-    res.status(500).send('Download failed!');
-  }
-});
-
-// ===== VIDEO DOWNLOADER =====
-const ytdl = require('@distube/ytdl-core');
-
 app.get('/downloader', requireLogin, (req, res) => {
   res.render('downloader', { user: req.session.user });
 });
@@ -569,6 +320,7 @@ app.get('/downloader', requireLogin, (req, res) => {
 app.post('/download/youtube', requireLogin, async (req, res) => {
   try {
     const { url } = req.body;
+    const ytdl = require('@distube/ytdl-core');
     if (!ytdl.validateURL(url)) return res.json({ error: 'Invalid YouTube URL!' });
     const info = await ytdl.getInfo(url);
     res.json({
@@ -579,12 +331,13 @@ app.post('/download/youtube', requireLogin, async (req, res) => {
       duration: Math.floor(info.videoDetails.lengthSeconds / 60) + ':' + (info.videoDetails.lengthSeconds % 60).toString().padStart(2,'0')
     });
   } catch(e) {
-    res.json({ error: 'YouTube video nahi mili!' });
+    res.json({ error: 'YouTube video nahi mili! ' + e.message });
   }
 });
 
 app.get('/stream/youtube', requireLogin, async (req, res) => {
   try {
+    const ytdl = require('@distube/ytdl-core');
     const { url, type } = req.query;
     const info = await ytdl.getInfo(url);
     const title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0,50);
@@ -598,37 +351,129 @@ app.get('/stream/youtube', requireLogin, async (req, res) => {
       ytdl(url, { filter: 'videoandaudio', quality: 'highest' }).pipe(res);
     }
   } catch(e) {
-    res.status(500).json({ error: 'Download failed!' });
+    res.status(500).send('Download failed: ' + e.message);
   }
 });
 
-// TikTok, Instagram, Facebook - RapidAPI se
-app.post('/download/social', requireLogin, async (req, res) => {
-  try {
-    const { url } = req.body;
-    const fetch = (await import('node-fetch')).default;
-    
-    // Social media downloader API
-    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(url)}`;
-    const response = await fetch(apiUrl, {
-      headers: {
-        'X-RapidAPI-Key': 'YOUR_RAPIDAPI_KEY',
-        'X-RapidAPI-Host': 'social-media-video-downloader.p.rapidapi.com'
-      }
-    });
-    const data = await response.json();
-    
-    if (data.links && data.links.length > 0) {
-      res.json({
-        success: true,
-        title: data.title || 'Video',
-        thumbnail: data.picture || '',
-        links: data.links.slice(0,3)
-      });
-    } else {
-      res.json({ error: 'Video nahi mili!' });
-    }
-  } catch(e) {
-    res.json({ error: 'Download failed! URL check karo.' });
+// ===== ADMIN =====
+const getAdmin = () => {
+  if (!fs.existsSync('data/admin.json')) {
+    fs.writeFileSync('data/admin.json', JSON.stringify({ admins: ['Zeeshan Khan'], settings: { siteName: 'MySocialApp', allowSignup: true, maintenanceMode: false } }));
   }
+  return JSON.parse(fs.readFileSync('data/admin.json'));
+};
+const saveAdmin = d => fs.writeFileSync('data/admin.json', JSON.stringify(d, null, 2));
+const requireAdmin = (req, res, next) => {
+  const admin = getAdmin();
+  if (req.session.user && admin.admins.includes(req.session.user)) return next();
+  res.redirect('/');
+};
+
+app.get('/admin', requireAdmin, (req, res) => {
+  const admin = getAdmin();
+  res.render('admin', {
+    user: req.session.user,
+    users: getUsers(),
+    posts: getPosts(),
+    groups: getGroups(),
+    settings: admin.settings,
+    admins: admin.admins,
+    onlineCount: onlineUsers.size,
+    onlineList: Array.from(onlineUsers.keys())
+  });
 });
+
+app.post('/admin/ban/:username', requireAdmin, (req, res) => {
+  const users = getUsers();
+  const idx = users.findIndex(x => x.username === req.params.username);
+  if (idx > -1) { users[idx].banned = !users[idx].banned; saveUsers(users); }
+  res.redirect('/admin');
+});
+
+app.post('/admin/deleteuser/:username', requireAdmin, (req, res) => {
+  saveUsers(getUsers().filter(x => x.username !== req.params.username));
+  res.redirect('/admin');
+});
+
+app.post('/admin/deletepost/:id', requireAdmin, (req, res) => {
+  savePosts(getPosts().filter(p => p.id !== req.params.id));
+  res.redirect('/admin');
+});
+
+app.post('/admin/makeadmin/:username', requireAdmin, (req, res) => {
+  const admin = getAdmin();
+  if (!admin.admins.includes(req.params.username)) { admin.admins.push(req.params.username); saveAdmin(admin); }
+  res.redirect('/admin');
+});
+
+app.post('/admin/settings', requireAdmin, (req, res) => {
+  const admin = getAdmin();
+  admin.settings.siteName = req.body.siteName;
+  admin.settings.allowSignup = req.body.allowSignup === 'on';
+  admin.settings.maintenanceMode = req.body.maintenanceMode === 'on';
+  saveAdmin(admin);
+  res.redirect('/admin');
+});
+
+app.post('/admin/broadcast', requireAdmin, (req, res) => {
+  const notifs = getNotifs();
+  getUsers().forEach(u => {
+    notifs.push({ id: uuidv4(), to: u.username, from: 'Admin', type: 'broadcast', text: '📢 Admin: ' + req.body.message, read: false, time: new Date().toLocaleString() });
+  });
+  saveNotifs(notifs);
+  res.redirect('/admin');
+});
+
+app.post('/admin/clearposts', requireAdmin, (req, res) => { savePosts([]); res.redirect('/admin'); });
+
+app.get('/manifest.json', (req, res) => {
+  res.json({ name: 'MySocialApp', short_name: 'SocialApp', start_url: '/', display: 'standalone', background_color: '#6a11cb', theme_color: '#2575fc', icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }] });
+});
+
+// ===== SOCKET.IO =====
+io.on('connection', (socket) => {
+  socket.on('userOnline', (username) => {
+    onlineUsers.set(username, socket.id);
+    io.emit('onlineUsers', Array.from(onlineUsers.keys()));
+  });
+  socket.on('joinRoom', room => socket.join(room));
+  socket.on('joinGroup', groupId => socket.join('group_' + groupId));
+  socket.on('chatMessage', (data) => {
+    const { room, sender, receiver, message } = data;
+    const msg = { sender, message, time: new Date().toLocaleTimeString() };
+    const chatFile = `data/chat_${[sender, receiver].sort().join('_')}.json`;
+    const msgs = fs.existsSync(chatFile) ? JSON.parse(fs.readFileSync(chatFile)) : [];
+    msgs.push(msg);
+    fs.writeFileSync(chatFile, JSON.stringify(msgs));
+    io.to(room).emit('newMessage', msg);
+  });
+  socket.on('groupMessage', (data) => {
+    const { groupId, sender, message } = data;
+    const msg = { sender, message, time: new Date().toLocaleTimeString() };
+    const groups = getGroups();
+    const g = groups.find(x => x.id === groupId);
+    if (g) { if (!g.messages) g.messages = []; g.messages.push(msg); saveGroups(groups); io.to('group_' + groupId).emit('groupMsg', msg); }
+  });
+  socket.on('callUser', (data) => {
+    const target = onlineUsers.get(data.to);
+    if (target) io.to(target).emit('incomingCall', { from: data.from, signal: data.signal, type: data.type || 'video' });
+  });
+  socket.on('answerCall', (data) => {
+    const target = onlineUsers.get(data.to);
+    if (target) io.to(target).emit('callAccepted', data.signal);
+  });
+  socket.on('endCall', (data) => {
+    const target = onlineUsers.get(data.to);
+    if (target) io.to(target).emit('callEnded');
+  });
+  socket.on('startLive', (data) => socket.broadcast.emit('liveStarted', data));
+  socket.on('liveChatMsg', (data) => socket.broadcast.emit('liveChatMsg', data));
+  socket.on('disconnect', () => {
+    for (const [user, id] of onlineUsers.entries()) {
+      if (id === socket.id) { onlineUsers.delete(user); break; }
+    }
+    io.emit('onlineUsers', Array.from(onlineUsers.keys()));
+  });
+});
+
+server.listen(process.env.PORT || 8080, () => console.log('✅ Server running!'));

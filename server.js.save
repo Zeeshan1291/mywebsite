@@ -1,4 +1,4 @@
-const express = require('express');
+server.listen(8080, () => console.log('✅ Server on port 8080'))const express = require('express');
 const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
@@ -476,4 +476,4 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(process.env.PORT || 8080, () => console.log('✅ Server running'));
+server.listen(process.env.PORT || 8080, () => console.log('✅ Server running!'));

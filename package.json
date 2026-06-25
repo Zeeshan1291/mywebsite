@@ -1,13 +1,16 @@
 {
+  "name": "mysocialapp",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "body-parser": "^2.3.0",
-    "ejs": "^6.0.1",
-    "express": "^5.2.1",
-    "express-fileupload": "^1.5.2",
-    "express-session": "^1.19.0",
-    "multer": "^2.2.0",
-    "sharp": "^0.35.2",
-    "socket.io": "^4.8.3",
-    "uuid": "^14.0.1"
+    "express": "*",
+    "express-session": "*",
+    "socket.io": "*",
+    "multer": "*",
+    "uuid": "*",
+    "ejs": "*"
   }
 }

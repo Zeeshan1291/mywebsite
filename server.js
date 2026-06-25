@@ -508,3 +508,53 @@ app.post('/admin/clearposts', requireAdmin, (req, res) => {
   savePosts([]);
   res.redirect('/admin');
 });
+
+// ===== VIDEO DOWNLOADER =====
+const ytdl = require('ytdl-core');
+
+app.get('/downloader', requireLogin, (req, res) => {
+  res.render('downloader', { user: req.session.user });
+});
+
+app.post('/download', requireLogin, async (req, res) => {
+  try {
+    const url = req.body.url;
+    const quality = req.body.quality || 'highest';
+    
+    if (!ytdl.validateURL(url)) {
+      return res.json({ error: 'Invalid URL!' });
+    }
+    
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title;
+    const thumbnail = info.videoDetails.thumbnails[0].url;
+    const duration = info.videoDetails.lengthSeconds;
+    
+    res.json({ 
+      success: true, 
+      title, 
+      thumbnail,
+      duration,
+      downloadUrl: `/stream?url=${encodeURIComponent(url)}&quality=${quality}`
+    });
+  } catch(e) {
+    res.json({ error: 'Video nahi mili! URL check karo.' });
+  }
+});
+
+app.get('/stream', requireLogin, async (req, res) => {
+  try {
+    const url = decodeURIComponent(req.query.url);
+    const quality = req.query.quality || 'highest';
+    
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
+    
+    res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+    res.header('Content-Type', 'video/mp4');
+    
+    ytdl(url, { quality: quality === 'audio' ? 'highestaudio' : 'highest' }).pipe(res);
+  } catch(e) {
+    res.status(500).send('Download failed!');
+  }
+});

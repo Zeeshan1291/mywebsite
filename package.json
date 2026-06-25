@@ -6,11 +6,12 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "ejs": "*",
     "express": "*",
     "express-session": "*",
-    "socket.io": "*",
     "multer": "*",
+    "socket.io": "*",
     "uuid": "*",
-    "ejs": "*"
+    "ytdl-core": "^4.11.5"
   }
 }

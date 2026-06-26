@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 const app = express();
 const server = http.createServer(app);

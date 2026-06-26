@@ -13,7 +13,6 @@
     "multer": "*",
     "node-fetch": "^3.3.2",
     "socket.io": "*",
-    "uuid": "*",
     "ytdl-core": "^4.11.5"
   }
 }

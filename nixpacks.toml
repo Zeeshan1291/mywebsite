@@ -2,4 +2,8 @@
 nixPkgs = ["nodejs", "python3", "ffmpeg"]
 
 [phases.install]
-cmds = ["npm install", "pip install yt-dlp --break-system-packages || pip install yt-dlp"]
+cmds = [
+  "npm install",
+  "python3 -m ensurepip --upgrade",
+  "python3 -m pip install --break-system-packages yt-dlp"
+]

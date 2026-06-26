@@ -318,53 +318,42 @@ app.get('/downloader', requireLogin, (req, res) => {
 });
 
 app.post('/download/youtube', requireLogin, async (req, res) => {
-  try {
-    const { url } = req.body;
-    const ytdl = require('@distube/ytdl-core');
-    if (!ytdl.validateURL(url)) return res.json({ error: 'Invalid YouTube URL!' });
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      }
-    });
-    res.json({
-      success: true,
-      title: info.videoDetails.title,
-      thumbnail: info.videoDetails.thumbnails.slice(-1)[0].url,
-      channel: info.videoDetails.author.name,
-      duration: Math.floor(info.videoDetails.lengthSeconds / 60) + ':' + (info.videoDetails.lengthSeconds % 60).toString().padStart(2,'0')
-    });
-  } catch(e) {
-    res.json({ error: 'YouTube video nahi mili! ' + e.message });
-  }
+  const { url } = req.body;
+  const { execFile } = require('child_process');
+  execFile('yt-dlp', ['-j', '--no-warnings', url], { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+    if (err) return res.json({ error: 'YouTube video nahi mili! ' + stderr });
+    try {
+      const data = JSON.parse(stdout);
+      res.json({
+        success: true,
+        title: data.title,
+        thumbnail: data.thumbnail,
+        channel: data.uploader,
+        duration: data.duration_string || ''
+      });
+    } catch (e) {
+      res.json({ error: 'Parse error: ' + e.message });
+    }
+  });
 });
 
-app.get('/stream/youtube', requireLogin, async (req, res) => {
-  try {
-    const ytdl = require('@distube/ytdl-core');
-    const { url, type } = req.query;
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      }
-    });
-    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0,50);
-    if (type === 'audio') {
-      res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-      res.header('Content-Type', 'audio/mpeg');
-      ytdl(url, { filter: 'audioonly', quality: 'highestaudio' }).pipe(res);
-    } else {
-      res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-      res.header('Content-Type', 'video/mp4');
-      ytdl(url, { filter: 'videoandaudio', quality: 'highest' }).pipe(res);
-    }
-  } catch(e) {
-    res.status(500).send('Download failed: ' + e.message);
+app.get('/stream/youtube', requireLogin, (req, res) => {
+  const { url, type } = req.query;
+  const { spawn } = require('child_process');
+  let args;
+  if (type === 'audio') {
+    res.header('Content-Disposition', 'attachment; filename="audio.mp3"');
+    res.header('Content-Type', 'audio/mpeg');
+    args = ['-f', 'bestaudio', '-o', '-', url];
+  } else {
+    res.header('Content-Disposition', 'attachment; filename="video.mp4"');
+    res.header('Content-Type', 'video/mp4');
+    args = ['-f', 'best[ext=mp4]/best', '-o', '-', url];
   }
+  const proc = spawn('yt-dlp', args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => console.error(d.toString()));
+  proc.on('error', e => res.status(500).send('Download failed: ' + e.message));
 });
 
 // ===== ADMIN =====

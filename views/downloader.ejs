@@ -53,6 +53,12 @@
     <input type="text" id="urlInput" placeholder="Link paste karo...">
   </div>
 
+  <div class="platforms" id="qualityBox" style="margin-bottom:14px;">
+    <span class="platform" id="q480" style="background:rgba(255,255,255,0.1);color:white;" onclick="setQuality('480',this)">480p</span>
+    <span class="platform" id="q720" style="background:rgba(255,255,255,0.1);color:white;" onclick="setQuality('720',this)">720p</span>
+    <span class="platform active" id="q1080" style="background:#6a11cb;color:white;" onclick="setQuality('1080',this)">Full HD (1080p)</span>
+  </div>
+
   <button class="btn" onclick="downloadVideo()">📥 Download Karo</button>
 
   <div class="loading" id="loading">⏳ Video dhundh raha hai...</div>
@@ -70,6 +76,14 @@
 
 <script>
 let platform = 'youtube';
+let quality = '1080';
+
+function setQuality(q, el) {
+  quality = q;
+  document.querySelectorAll('#qualityBox .platform').forEach(x => { x.classList.remove('active'); x.style.background='rgba(255,255,255,0.1)'; });
+  el.classList.add('active');
+  el.style.background='#6a11cb';
+}
 
 const tips = {
   youtube: 'YouTube video ka link paste karo',
@@ -111,7 +125,7 @@ async function downloadVideo() {
         document.getElementById('videoTitle').textContent = data.title;
         document.getElementById('videoMeta').textContent = '👤 ' + data.channel + ' • ⏱️ ' + data.duration;
         document.getElementById('dlButtons').innerHTML = `
-          <a href="/stream/youtube?url=${encodeURIComponent(url)}&type=video" class="dl-btn dl-video" download>📥 Download Video (MP4)</a>
+          <a href="/stream/youtube?url=${encodeURIComponent(url)}&type=video&quality=${quality}" class="dl-btn dl-video" download>📥 Download Video (MP4 - ${quality}p)</a>
           <a href="/stream/youtube?url=${encodeURIComponent(url)}&type=audio" class="dl-btn dl-audio" download>🎵 Download Audio (MP3)</a>
         `;
         document.getElementById('result').style.display = 'block';

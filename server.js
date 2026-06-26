@@ -489,3 +489,36 @@ io.on('connection', (socket) => {
 });
 
 server.listen(process.env.PORT || 8080, () => console.log('✅ Server running'));
+
+app.post('/download/social', requireLogin, async (req, res) => {
+  const { url } = req.body;
+  const { execFile } = require('child_process');
+  execFile('yt-dlp', ['-j', '--no-warnings', '--no-playlist', url], { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+    if (err) return res.json({ error: 'Video nahi mili! ' + stderr.split('\n')[0] });
+    try {
+      const data = JSON.parse(stdout);
+      res.json({
+        success: true,
+        title: data.title || 'Video',
+        thumbnail: data.thumbnail || '',
+        links: [
+          { quality: 'Best Quality (No Watermark)', url: '/stream/social?url=' + encodeURIComponent(url) }
+        ]
+      });
+    } catch (e) {
+      res.json({ error: 'Parse error: ' + e.message });
+    }
+  });
+});
+
+app.get('/stream/social', requireLogin, (req, res) => {
+  const { url } = req.query;
+  const { spawn } = require('child_process');
+  res.header('Content-Disposition', 'attachment; filename="video.mp4"');
+  res.header('Content-Type', 'video/mp4');
+  const args = ['-f', 'best[ext=mp4]/best', '--no-playlist', '-o', '-', url];
+  const proc = spawn('yt-dlp', args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => console.error(d.toString()));
+  proc.on('error', e => res.status(500).send('Download failed: ' + e.message));
+});

@@ -1,4 +1,4 @@
-const express = require('express');
+grep -n "ytdl.getInfo" server.jsconst express = require('express');
 const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
@@ -322,13 +322,7 @@ app.post('/download/youtube', requireLogin, async (req, res) => {
     const { url } = req.body;
     const ytdl = require('@distube/ytdl-core');
     if (!ytdl.validateURL(url)) return res.json({ error: 'Invalid YouTube URL!' });
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      }
-    });
+    const info = await ytdl.getInfo(url);
     res.json({
       success: true,
       title: info.videoDetails.title,
@@ -345,13 +339,7 @@ app.get('/stream/youtube', requireLogin, async (req, res) => {
   try {
     const ytdl = require('@distube/ytdl-core');
     const { url, type } = req.query;
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      }
-    });
+    const info = await ytdl.getInfo(url);
     const title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0,50);
     if (type === 'audio') {
       res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);

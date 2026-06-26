@@ -338,17 +338,28 @@ app.post('/download/youtube', requireLogin, async (req, res) => {
 });
 
 app.get('/stream/youtube', requireLogin, (req, res) => {
-  const { url, type } = req.query;
+  const { url, type, quality } = req.query;
   const { spawn } = require('child_process');
   let args;
   if (type === 'audio') {
     res.header('Content-Disposition', 'attachment; filename="audio.mp3"');
     res.header('Content-Type', 'audio/mpeg');
-    args = ['-f', 'bestaudio', '-o', '-', url];
+    args = ['-f', 'bestaudio', '-x', '--audio-format', 'mp3', '-o', '-', url];
   } else {
+    let height = '1080';
+    if (quality === '480') height = '480';
+    else if (quality === '720') height = '720';
+    else if (quality === '1080' || quality === 'hd') height = '1080';
+
     res.header('Content-Disposition', 'attachment; filename="video.mp4"');
     res.header('Content-Type', 'video/mp4');
-    args = ['-f', 'best[ext=mp4]/best', '-o', '-', url];
+    args = [
+      '-f', `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]/best[height<=${height}][ext=mp4]/best`,
+      '--merge-output-format', 'mp4',
+      '--no-playlist',
+      '-o', '-',
+      url
+    ];
   }
   const proc = spawn('yt-dlp', args);
   proc.stdout.pipe(res);
